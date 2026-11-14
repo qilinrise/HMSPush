@@ -5,6 +5,10 @@
     >
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Listing every installed app is required by the custom icon page. -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
 
     <queries>
         <package android:name="com.huawei.hwid" />
@@ -67,6 +71,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
+
+        <!-- Serves the ported NoticeFix data to the SystemUI process. -->
+        <provider
+            android:name=".app.noticefix.NoticeFixProvider"
+            android:authorities="one.yufz.hmspush.provider.noticefix"
+            android:exported="true" />
 
     </application>
 </manifest>

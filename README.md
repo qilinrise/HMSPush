@@ -23,7 +23,7 @@ HMS Core 是华为提供的一套服务，其中包含了推送功能，可以�
 - 杀掉应用测试推送是否生效（可以使用QQ测试）
 　　
 ### 注意：
-- 在 LSPosed 中额外勾选「SystemUI」作用域并重启 SystemUI 后，自定义通知图标会对所有应用的通知生效（不再限于 HMS 推送的通知）；同时可在设置中开启「修复通知图标」，把没有自定义图标且不符合灰度规范的通知小图标转换为合规的单色图标，避免显示为白块/灰块
+- 在 LSPosed 中额外勾选「SystemUI」作用域并重启 SystemUI 后，应用底部「图标策略 / 图标库 / 自定义」页的通知图标功能会对所有应用的通知生效（不再限于 HMS 推送的通知）：按「自定义图标 → 图标库 → 自动修复」的策略顺序（顺序与开关可调）替换通知小图标，支持逐应用自定义图标、图标库在线更新与导入、「始终处理推送消息」、「不处理」名单，以及在应用内重启系统界面
 
 - 并不是所有应用都支持 HMS 推送，目前测试已支持大部分应用，比如 QQ、抖音、知乎、酷安等，闲鱼、淘宝、饿了么等 v0.0.13 起已支持
 
@@ -41,7 +41,7 @@ HMS Core 是华为提供的一套服务，其中包含了推送功能，可以�
 - [XposedBridge](https://github.com/rovo89/XposedBridge) Xposed framework APIs
 - [LSPatch](https://github.com/LSPosed/LSPatch) 免 Root Xposed 框架
 - [AndroidNotifyIconAdapt](https://github.com/fankes/AndroidNotifyIconAdapt) 图标库
-- [NoticeFix](https://github.com/xudazhu1/NoticeFix) 「修复通知图标」功能的思路来源；该功能为参考其核心行为的独立重新实现，未使用其代码与资源（NoticeFix 为 AGPL-3.0，本项目为 GPL-3.0）
+- [NoticeFix](https://github.com/xudazhu1/NoticeFix) 图标库、自定义图标、「始终处理推送消息」、自动单色修复与重启系统界面等功能的参考来源；这些功能为参考其行为与数据结构的独立重新实现，未使用其代码与资源（NoticeFix 为 AGPL-3.0，本项目为 GPL-3.0）
 
 ### 反馈
 [Github Issues](https://github.com/fei-ke/HMSPush/issues)、[Telegram Group](https://t.me/HMSPush)、[Email](mailto:hmspush@yufz.one)
