@@ -76,6 +76,8 @@ dependencies {
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.material3)
+    // Material 3 XML themes (Theme.Material3.DayNight) for the activity window.
+    implementation(libs.google.material)
     implementation(libs.androidx.compose.animation)
     implementation(libs.androidx.compose.ui)
     debugImplementation(libs.androidx.compose.ui.tooling)

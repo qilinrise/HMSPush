@@ -3,6 +3,8 @@ package one.yufz.hmspush.app.theme
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -38,6 +40,12 @@ private val LightColorScheme = lightColorScheme(
     onSurface = Color(0xFF1C1B1F),
     */
 )
+
+// Material Design 3 default type scale and shape scale, applied app-wide so
+// every screen shares the same typography hierarchy and corner radii.
+private val AppTypography = Typography()
+
+private val AppShapes = Shapes()
 
 data class CustomColors(
     val active: Color,
@@ -96,6 +104,8 @@ fun AppTheme(
     CompositionLocalProvider(LocalCustomColors provides customColors) {
         MaterialTheme(
             colorScheme = colorScheme,
+            typography = AppTypography,
+            shapes = AppShapes,
             content = content
         )
     }

@@ -10,17 +10,14 @@ import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -30,6 +27,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -48,7 +46,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.airbnb.mvrx.compose.collectAsState
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import kotlinx.coroutines.Dispatchers
@@ -90,55 +87,51 @@ private fun AppList(appList: List<AppInfo>, zygiskEnabled: Boolean) {
 private fun AppCard(info: AppInfo, zygiskEnabled: Boolean) {
     val drawable by loadAppIcon(LocalContext.current, info.packageName)
     val drawablePainter = rememberDrawablePainter(drawable)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 8.dp, top = 8.dp, end = 4.dp, bottom = 8.dp)
-    ) {
-
-        //Icon
-        Icon(
-            painter = drawablePainter,
-            contentDescription = "icon",
-            tint = Color.Unspecified,
-            modifier = Modifier
-                .size(56.dp)
-                .padding(all = 8.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Column(Modifier.weight(1f)) {
-
+    // Material Design 3 list item, same layout pattern as FakeDeviceScreen.
+    ListItem(
+        leadingContent = {
+            //Icon
+            Icon(
+                painter = drawablePainter,
+                contentDescription = "icon",
+                tint = Color.Unspecified,
+                modifier = Modifier
+                    .size(56.dp)
+                    .padding(all = 8.dp)
+            )
+        },
+        headlineContent = {
             //Title
             Text(
                 text = info.name,
                 color = if (info.registered) MaterialTheme.customColors.active else Color.Unspecified,
-                fontSize = 16.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+        },
+        supportingContent = {
+            Column {
+                //Subtitle
+                Text(
+                    text = info.packageName,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
 
-            //Subtitle
-            Text(
-                text = info.packageName,
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 14.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            //Status
-            AppStatus(info, zygiskEnabled)
+                //Status
+                AppStatus(info, zygiskEnabled)
+            }
+        },
+        trailingContent = {
+            //More
+            var showDropdownMenu by remember { mutableStateOf(false) }
+            IconButton(onClick = { showDropdownMenu = true }) {
+                Icon(imageVector = Icons.Filled.MoreVert, contentDescription = "More")
+                MoreDropdownMenu(showDropdownMenu, info, zygiskEnabled, { showDropdownMenu = false })
+            }
         }
-        Spacer(modifier = Modifier.width(16.dp))
-
-        //More
-        var showDropdownMenu by remember { mutableStateOf(false) }
-        IconButton(onClick = { showDropdownMenu = true }) {
-            Icon(imageVector = Icons.Filled.MoreVert, contentDescription = "More")
-            MoreDropdownMenu(showDropdownMenu, info, zygiskEnabled, { showDropdownMenu = false })
-        }
-
-    }
+    )
 }
 
 @Composable
@@ -189,7 +182,7 @@ private fun AppStatus(info: AppInfo, zygiskEnabled: Boolean) {
     Text(
         text = builder.toString(),
         color = if (info.registered) MaterialTheme.customColors.active else Color.Unspecified,
-        fontSize = 13.sp,
+        style = MaterialTheme.typography.bodySmall,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis
     )

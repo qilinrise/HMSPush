@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources>
 
-    <style name="Theme.App" parent="@android:style/Theme.Material.Light.NoActionBar">
+    <!-- Material Design 3 DayNight theme: follows the system light/dark setting,
+         supports dynamic color through the Compose Material3 color scheme. -->
+    <style name="Theme.App" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>
     </style>
 </resources>
