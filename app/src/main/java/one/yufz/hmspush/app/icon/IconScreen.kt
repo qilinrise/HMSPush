@@ -85,10 +85,10 @@ fun IconScreen(iconViewModel: IconViewModel = mavericksViewModel()) {
                 actions = {
                     var showMoreMenu by remember { mutableStateOf(false) }
 
-                    // The rows end with a 4 dp spacer after their
-                    // delete button, so 4 dp here puts this button's
-                    // center on the same vertical line.
-                    Box(modifier = Modifier.padding(end = 4.dp)) {
+                    // Same 32 dp end inset as the home top bar, so
+                    // this button sits on the same vertical line as
+                    // Home's menu button and the rows' delete buttons.
+                    Box(modifier = Modifier.padding(end = 32.dp)) {
                         IconButton(onClick = { showMoreMenu = true }) {
                             Icon(imageVector = Icons.Filled.Add, contentDescription = "Add")
                         }
@@ -187,7 +187,9 @@ fun IconScreen(iconViewModel: IconViewModel = mavericksViewModel()) {
                         IconButton(onClick = { iconViewModel.deleteIcon(it.packageName) }) {
                             Icon(imageVector = Icons.Filled.Close, contentDescription = "Delete")
                         }
-                        Spacer(modifier = Modifier.width(4.dp))
+                        // 32 dp trailing inset: the delete buttons line
+                        // up with Home's app-card menu buttons.
+                        Spacer(modifier = Modifier.width(32.dp))
                     }
                 }
             }
