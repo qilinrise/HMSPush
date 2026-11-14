@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.outlined.AutoFixHigh
 import androidx.compose.material.icons.outlined.Computer
 import androidx.compose.material.icons.outlined.FormatColorFill
 import androidx.compose.material.icons.outlined.FormatListBulleted
@@ -138,6 +139,15 @@ fun SettingsScreen(viewModel: SettingsViewModel = mavericksViewModel()) {
                         }
                     )
                 }
+                SwitchPreference(
+                    title = stringResource(id = R.string.fix_notification_icon),
+                    summary = stringResource(id = R.string.fix_notification_icon_summary),
+                    icon = Icons.Outlined.AutoFixHigh,
+                    checked = preferences.fixNotificationIcon,
+                    onCheckedChange = {
+                        viewModel.updatePreference { fixNotificationIcon = it }
+                    }
+                )
                 SwitchPreference(
                     title = stringResource(id = R.string.hide_app_icon),
                     summary = stringResource(id=R.string.hide_app_icon_desc),

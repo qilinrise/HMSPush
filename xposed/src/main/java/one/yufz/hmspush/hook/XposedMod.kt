@@ -9,6 +9,7 @@ import one.yufz.hmspush.common.doOnce
 import one.yufz.hmspush.hook.fakedevice.FakeDevice
 import one.yufz.hmspush.hook.hms.HookHMS
 import one.yufz.hmspush.hook.system.HookSystemService
+import one.yufz.hmspush.hook.systemui.HookSystemUI
 
 class XposedMod : IXposedHookLoadPackage {
     companion object {
@@ -42,6 +43,7 @@ class XposedMod : IXposedHookLoadPackage {
         }
 
         if (lpparam.packageName == "com.android.systemui") {
+            HookSystemUI().hook(lpparam.classLoader)
             return
         }
 

@@ -37,6 +37,8 @@
     <string name="notification_icon">自定义通知图标</string>
     <string name="tint_notification_icon">通知栏图标染色</string>
     <string name="tint_notification_icon_summary">在某些设备上可能无效果</string>
+    <string name="fix_notification_icon">修复通知图标</string>
+    <string name="fix_notification_icon_summary">在 SystemUI 内把不符合灰度规范的通知图标转换为合规的单色图标，避免显示为白块或灰块。对没有自定义图标的通知生效，需要勾选 SystemUI 作用域。</string>
     <string name="importing">正在导入…</string>
     <string name="import_complete">导入完成</string>
     <string name="import_dialog_title">输入图标库地址</string>

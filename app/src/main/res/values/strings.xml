@@ -38,6 +38,8 @@
     <string name="notification_icon">Custom Notification Icon</string>
     <string name="tint_notification_icon">Tint Icon Color On Notification Panel</string>
     <string name="tint_notification_icon_summary">May not work on some device</string>
+    <string name="fix_notification_icon">Fix Notification Icons</string>
+    <string name="fix_notification_icon_summary">Convert non-grayscale notification icons into compliant monochrome icons inside SystemUI, so they do not show as white or grey blocks. Applies to notifications without a custom icon. Requires the SystemUI scope to be enabled.</string>
     <string name="importing">Importing…</string>
     <string name="import_complete">Import Complete</string>
     <string name="import_dialog_title">Input Icon Library Url</string>
