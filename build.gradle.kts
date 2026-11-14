@@ -17,7 +17,7 @@ plugins {
 
 val repo = jgit.repo()
 val commitCount = (repo?.commitCount("refs/remotes/origin/master") ?: 1)
-val latestTag = repo?.latestTag?.removePrefix("v") ?: "0.0"
+val latestTag = repo?.latestTag?.removePrefix("v") ?: "1.0"
 
 val appNamespace by extra("one.yufz.hmspush")
 val appApplicationId by extra("one.yufz.hmspush")
