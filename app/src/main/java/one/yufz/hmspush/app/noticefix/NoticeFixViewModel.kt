@@ -17,15 +17,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import one.yufz.hmspush.app.HmsPushClient
+import one.yufz.hmspush.common.IconData
 import one.yufz.hmspush.common.noticefix.NoticeCustomIcon
 import one.yufz.hmspush.common.noticefix.NoticeFixConfig
-import one.yufz.hmspush.common.noticefix.NoticeFixContract
 import one.yufz.hmspush.common.noticefix.NoticeFuncStatus
-import one.yufz.hmspush.common.noticefix.NoticeLibIcon
 import one.yufz.hmspush.common.noticefix.encodeBitmapToBase64
-import java.io.InputStream
-import java.net.HttpURLConnection
-import java.net.URL
 
 data class InstalledApp(
     val label: String,
@@ -34,7 +31,12 @@ data class InstalledApp(
     val isSystem: Boolean,
 )
 
-/** Shared state for the three NoticeFix screens (activity-scoped). */
+/**
+ * Shared state for the NoticeFix settings section and the custom page
+ * (activity-scoped). The icon library is the HMS icon subscription: it
+ * is loaded through [HmsPushClient] like the icon page does, so the
+ * custom page recognizes the same library.
+ */
 class NoticeFixViewModel(application: Application) : AndroidViewModel(application) {
 
     private val context: Application get() = getApplication()
@@ -43,31 +45,23 @@ class NoticeFixViewModel(application: Application) : AndroidViewModel(applicatio
         private set
     var funcs by mutableStateOf(NoticeFixStore.loadFuncs(context))
         private set
-    var library by mutableStateOf<Map<String, NoticeLibIcon>>(emptyMap())
-        private set
     var customs by mutableStateOf<Map<String, NoticeCustomIcon>>(emptyMap())
+        private set
+    /** The HMS subscription library, by package name. */
+    var subscriptionIcons by mutableStateOf<Map<String, IconData>>(emptyMap())
         private set
     var apps by mutableStateOf<List<InstalledApp>>(emptyList())
         private set
     var appsLoaded by mutableStateOf(false)
         private set
-    var busy by mutableStateOf(false)
-        private set
-    /** One-shot message for the UI to toast; cleared by [consumeMessage]. */
-    var message by mutableStateOf<String?>(null)
-        private set
 
     init {
-        reloadLibraryAndCustoms()
+        reloadCustoms()
         loadApps()
+        loadSubscriptionIcons()
     }
 
-    fun consumeMessage() {
-        message = null
-    }
-
-    fun reloadLibraryAndCustoms() {
-        library = NoticeFixStore.loadLibrary(context)
+    fun reloadCustoms() {
         customs = NoticeFixStore.loadCustoms(context)
     }
 
@@ -90,6 +84,22 @@ class NoticeFixViewModel(application: Application) : AndroidViewModel(applicatio
             }
             apps = loaded
             appsLoaded = true
+        }
+    }
+
+    /** Reloads the subscription library; call when the custom page shows. */
+    fun loadSubscriptionIcons() {
+        viewModelScope.launch {
+            val loaded = withContext(Dispatchers.IO) {
+                runCatching {
+                    HmsPushClient.getAllIcon()
+                        .mapNotNull { model -> runCatching { model.toIconData() }.getOrNull() }
+                        .associateBy { it.packageName }
+                }.getOrDefault(emptyMap())
+            }
+            if (loaded.isNotEmpty() || subscriptionIcons.isEmpty()) {
+                subscriptionIcons = loaded
+            }
         }
     }
 
@@ -121,62 +131,6 @@ class NoticeFixViewModel(application: Application) : AndroidViewModel(applicatio
         funcs = renumbered
     }
 
-    // ----- icon library -----------------------------------------------------
-
-    fun refreshLibraryOnline() {
-        if (busy) return
-        busy = true
-        viewModelScope.launch {
-            val result = withContext(Dispatchers.IO) {
-                runCatching {
-                    val connection = URL(NoticeFixContract.DEFAULT_LIBRARY_URL).openConnection()
-                        as HttpURLConnection
-                    connection.connectTimeout = 15_000
-                    connection.readTimeout = 30_000
-                    val text = connection.inputStream.bufferedReader().use { it.readText() }
-                    NoticeLibIcon.parseLibrary(text)
-                }
-            }
-            busy = false
-            result.onSuccess { entries ->
-                if (entries.isEmpty()) {
-                    message = "library_refresh_empty"
-                } else {
-                    NoticeFixStore.importLibrary(context, entries)
-                    reloadLibraryAndCustoms()
-                    message = "library_refreshed:${library.size}"
-                }
-            }.onFailure {
-                message = "library_refresh_failed"
-            }
-        }
-    }
-
-    fun importLibrary(input: InputStream) {
-        if (busy) return
-        busy = true
-        viewModelScope.launch {
-            val result = withContext(Dispatchers.IO) {
-                runCatching {
-                    val text = input.bufferedReader().use { it.readText() }
-                    NoticeLibIcon.parseLibrary(text)
-                }
-            }
-            busy = false
-            result.onSuccess { entries ->
-                if (entries.isEmpty()) {
-                    message = "library_import_invalid"
-                } else {
-                    val added = NoticeFixStore.importLibrary(context, entries)
-                    reloadLibraryAndCustoms()
-                    message = "library_imported:$added:${library.size}"
-                }
-            }.onFailure {
-                message = "library_import_invalid"
-            }
-        }
-    }
-
     // ----- custom icons -------------------------------------------------------
 
     fun setCustomFromBitmap(packageName: String, label: String, bitmap: Bitmap) {
@@ -189,26 +143,17 @@ class NoticeFixViewModel(application: Application) : AndroidViewModel(applicatio
             noHandle = existing?.noHandle ?: false,
         )
         NoticeFixStore.saveCustom(context, bean)
-        reloadLibraryAndCustoms()
+        reloadCustoms()
     }
 
     fun setCustomFromLibrary(packageName: String, label: String) {
-        val libIcon = library[packageName] ?: return
-        val existing = customs[packageName]
-        val bean = NoticeCustomIcon(
-            pkgName = packageName,
-            label = label,
-            iconBase64 = libIcon.iconBitmap,
-            iconColor = libIcon.iconColor,
-            noHandle = existing?.noHandle ?: false,
-        )
-        NoticeFixStore.saveCustom(context, bean)
-        reloadLibraryAndCustoms()
+        val libIcon = subscriptionIcons[packageName] ?: return
+        setCustomFromBitmap(packageName, label, libIcon.iconBitmap)
     }
 
     fun deleteCustom(packageName: String) {
         NoticeFixStore.deleteCustom(context, packageName)
-        reloadLibraryAndCustoms()
+        reloadCustoms()
     }
 
     fun setNoHandle(packageName: String, label: String, noHandle: Boolean) {
@@ -224,23 +169,11 @@ class NoticeFixViewModel(application: Application) : AndroidViewModel(applicatio
                     .copy(label = label, noHandle = noHandle),
             )
         }
-        reloadLibraryAndCustoms()
-    }
-
-    // ----- system -------------------------------------------------------------
-
-    fun restartSystemUI() {
-        if (busy) return
-        busy = true
-        viewModelScope.launch {
-            val ok = withContext(Dispatchers.IO) { RootActions.restartSystemUI() }
-            busy = false
-            message = if (ok) "restart_systemui_sent" else "restart_systemui_failed"
-        }
+        reloadCustoms()
     }
 }
 
-/** The ViewModel is activity-scoped so all bottom-bar tabs share one state. */
+/** The ViewModel is activity-scoped so the settings section and tabs share one state. */
 @Composable
 fun rememberNoticeFixViewModel(): NoticeFixViewModel {
     val activity = LocalContext.current as ComponentActivity

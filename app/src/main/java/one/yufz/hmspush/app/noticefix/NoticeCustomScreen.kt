@@ -10,6 +10,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,6 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,8 +55,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import one.yufz.hmspush.R
+import one.yufz.hmspush.common.IconData
 import one.yufz.hmspush.common.noticefix.NoticeCustomIcon
-import one.yufz.hmspush.common.noticefix.NoticeLibIcon
 
 private enum class CustomFilter { ALL, USER, SYSTEM, LIB, CUSTOM, NO_HANDLE }
 
@@ -72,6 +74,8 @@ fun NoticeCustomScreen(viewModel: NoticeFixViewModel = rememberNoticeFixViewMode
     val context = LocalContext.current
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf(CustomFilter.ALL) }
+
+    LaunchedEffect(Unit) { viewModel.loadSubscriptionIcons() }
     var expandedPkg by remember { mutableStateOf<String?>(null) }
     var pickingApp by remember { mutableStateOf<InstalledApp?>(null) }
     var editing by remember { mutableStateOf<EditingState?>(null) }
@@ -92,13 +96,13 @@ fun NoticeCustomScreen(viewModel: NoticeFixViewModel = rememberNoticeFixViewMode
         }
     }
 
-    val filteredApps = remember(viewModel.apps, viewModel.library, viewModel.customs, query, filter) {
+    val filteredApps = remember(viewModel.apps, viewModel.subscriptionIcons, viewModel.customs, query, filter) {
         viewModel.apps.filter { app ->
             val matchesFilter = when (filter) {
                 CustomFilter.ALL -> true
                 CustomFilter.USER -> !app.isSystem
                 CustomFilter.SYSTEM -> app.isSystem
-                CustomFilter.LIB -> viewModel.library.containsKey(app.packageName)
+                CustomFilter.LIB -> viewModel.subscriptionIcons.containsKey(app.packageName)
                 CustomFilter.CUSTOM -> viewModel.customs[app.packageName]?.iconBase64 != null
                 CustomFilter.NO_HANDLE -> viewModel.customs[app.packageName]?.noHandle == true
             }
@@ -175,11 +179,16 @@ fun NoticeCustomScreen(viewModel: NoticeFixViewModel = rememberNoticeFixViewMode
                     )
                 }
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     items(filteredApps, key = { it.packageName }) { app ->
+                        NoticeGroupCard(modifier = Modifier.padding(horizontal = 16.dp)) {
                         AppRow(
                             app = app,
-                            libIcon = viewModel.library[app.packageName],
+                            libIcon = viewModel.subscriptionIcons[app.packageName],
                             custom = viewModel.customs[app.packageName],
                             expanded = expandedPkg == app.packageName,
                             onToggleExpand = {
@@ -193,6 +202,7 @@ fun NoticeCustomScreen(viewModel: NoticeFixViewModel = rememberNoticeFixViewMode
                             onDeleteCustom = { viewModel.deleteCustom(app.packageName) },
                             onNoHandleChange = { viewModel.setNoHandle(app.packageName, app.label, it) },
                         )
+                        }
                     }
                 }
             }
@@ -214,7 +224,7 @@ fun NoticeCustomScreen(viewModel: NoticeFixViewModel = rememberNoticeFixViewMode
 @Composable
 private fun AppRow(
     app: InstalledApp,
-    libIcon: NoticeLibIcon?,
+    libIcon: IconData?,
     custom: NoticeCustomIcon?,
     expanded: Boolean,
     onToggleExpand: () -> Unit,
@@ -261,7 +271,7 @@ private fun AppRow(
             },
         )
         if (expanded) {
-            val libBitmap = remember(libIcon?.iconBitmap) { libIcon?.decodeBitmap() }
+            val libBitmap = libIcon?.iconBitmap
             val customBitmap = remember(custom?.iconBase64) { custom?.decodeBitmap() }
             Column(
                 modifier = Modifier

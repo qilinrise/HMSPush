@@ -18,17 +18,21 @@ import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -36,7 +40,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -129,6 +137,41 @@ private fun AppBar(
 private fun AppBarMoreMenu(usable: Boolean) {
     //More
     var openMoreMenu by remember { mutableStateOf(false) }
+    var showRestartSystemUiDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    if (showRestartSystemUiDialog) {
+        AlertDialog(
+            onDismissRequest = { showRestartSystemUiDialog = false },
+            title = { Text(text = stringResource(id = R.string.notice_restart_systemui_title)) },
+            text = { Text(text = stringResource(id = R.string.notice_restart_systemui_confirm)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showRestartSystemUiDialog = false
+                        scope.launch {
+                            val sent = withContext(Dispatchers.IO) {
+                                one.yufz.hmspush.app.noticefix.RootActions.restartSystemUI()
+                            }
+                            Toast.makeText(
+                                context,
+                                if (sent) R.string.notice_restart_sent else R.string.notice_restart_failed,
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
+                    },
+                ) {
+                    Text(text = stringResource(id = android.R.string.ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRestartSystemUiDialog = false }) {
+                    Text(text = stringResource(id = android.R.string.cancel))
+                }
+            },
+        )
+    }
 
     IconButton(onClick = { openMoreMenu = true }) {
         Icon(imageVector = Icons.Filled.MoreVert, contentDescription = "More")
@@ -136,19 +179,10 @@ private fun AppBarMoreMenu(usable: Boolean) {
             DropdownMenu(
                 expanded = openMoreMenu,
                 onDismissRequest = { openMoreMenu = false },
-                modifier = Modifier.requiredWidth(160.dp)
+                modifier = Modifier.requiredWidth(160.dp),
+                shape = RoundedCornerShape(20.dp),
             ) {
                 val navigator = LocalNavigator.current
-                DropdownMenuItem(
-                    text = {
-                        Text(text = stringResource(id = R.string.menu_settings))
-                    },
-                    onClick = {
-                        navigator.navigate(Router.Settings)
-                        openMoreMenu = false
-                    },
-                    enabled = usable
-                )
                 DropdownMenuItem(
                     text = {
                         Text(text = stringResource(id = R.string.fake_device))
@@ -158,7 +192,7 @@ private fun AppBarMoreMenu(usable: Boolean) {
                         openMoreMenu = false
                     }
                 )
-                val context = LocalContext.current
+                MenuDivider()
                 DropdownMenuItem(
                     text = {
                         Text(text = stringResource(id = R.string.open_hms_core_app_info))
@@ -168,6 +202,7 @@ private fun AppBarMoreMenu(usable: Boolean) {
                         openMoreMenu = false
                     }
                 )
+                MenuDivider()
                 DropdownMenuItem(
                     text = {
                         Text(text = stringResource(id = R.string.reboot_hms_core))
@@ -177,9 +212,28 @@ private fun AppBarMoreMenu(usable: Boolean) {
                         openMoreMenu = false
                     }
                 )
+                MenuDivider()
+                DropdownMenuItem(
+                    text = {
+                        Text(text = stringResource(id = R.string.notice_restart_systemui_title))
+                    },
+                    onClick = {
+                        openMoreMenu = false
+                        showRestartSystemUiDialog = true
+                    }
+                )
             }
         }
     }
+}
+
+/** M3-style divider between menu items. */
+@Composable
+private fun MenuDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+    )
 }
 
 private fun rebootHmsCore(context: Context) {

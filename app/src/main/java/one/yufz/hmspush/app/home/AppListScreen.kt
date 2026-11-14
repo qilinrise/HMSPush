@@ -8,7 +8,9 @@ import android.text.format.DateUtils
 import android.widget.Toast
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -22,7 +24,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -73,7 +80,13 @@ fun AppListScreen(searchText: String, appListViewModel: AppListViewModel = maver
 @Composable
 private fun AppList(appList: List<AppInfo>, zygiskEnabled: Boolean) {
     val bottomPadding = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom).asPaddingValues()
-    LazyColumn(contentPadding = bottomPadding) {
+    LazyColumn(
+        contentPadding = PaddingValues(
+            top = 12.dp,
+            bottom = bottomPadding.calculateBottomPadding() + 12.dp,
+        ),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         items(
             items = appList,
             key = { it.packageName }
@@ -87,8 +100,16 @@ private fun AppList(appList: List<AppInfo>, zygiskEnabled: Boolean) {
 private fun AppCard(info: AppInfo, zygiskEnabled: Boolean) {
     val drawable by loadAppIcon(LocalContext.current, info.packageName)
     val drawablePainter = rememberDrawablePainter(drawable)
-    // Material Design 3 list item, same layout pattern as FakeDeviceScreen.
+    // Each app is its own rounded card, matching the grouped-card style.
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+        modifier = Modifier.padding(horizontal = 16.dp),
+    ) {
     ListItem(
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         leadingContent = {
             //Icon
             Icon(
@@ -132,6 +153,7 @@ private fun AppCard(info: AppInfo, zygiskEnabled: Boolean) {
             }
         }
     )
+    }
 }
 
 @Composable
@@ -194,7 +216,12 @@ private fun MoreDropdownMenu(expanded: Boolean, info: AppInfo, zygiskEnabled: Bo
 
     var showUnregisterDialog by remember { mutableStateOf(false) }
 
-    DropdownMenu(expanded = expanded, onDismissRequest = onDismissRequest, modifier = Modifier.requiredWidth(160.dp)) {
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismissRequest,
+        modifier = Modifier.requiredWidth(160.dp),
+        shape = RoundedCornerShape(20.dp),
+    ) {
         //Launch
         DropdownMenuItem(
             text = {
@@ -225,6 +252,10 @@ private fun MoreDropdownMenu(expanded: Boolean, info: AppInfo, zygiskEnabled: Bo
             }
         )
 
+        HorizontalDivider(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+        )
         DropdownMenuItem(
             text = {
                 Text(text = stringResource(id = R.string.clear_hms_notification_channels))
@@ -265,6 +296,10 @@ private fun MoreDropdownMenu(expanded: Boolean, info: AppInfo, zygiskEnabled: Bo
         }
         //Unregister
         if (info.registered) {
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+            )
             DropdownMenuItem(
                 text = {
                     Text(

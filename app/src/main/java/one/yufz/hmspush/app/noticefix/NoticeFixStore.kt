@@ -6,7 +6,6 @@ import one.yufz.hmspush.common.noticefix.NoticeCustomIcon
 import one.yufz.hmspush.common.noticefix.NoticeFixConfig
 import one.yufz.hmspush.common.noticefix.NoticeFixContract
 import one.yufz.hmspush.common.noticefix.NoticeFuncStatus
-import one.yufz.hmspush.common.noticefix.NoticeLibIcon
 import org.json.JSONObject
 
 /**
@@ -57,34 +56,6 @@ object NoticeFixStore {
         editor.clear()
         funcs.forEach { editor.putString(it.funcId.toString(), it.toJson().toString()) }
         editor.apply()
-    }
-
-    // ----- icon library ----------------------------------------------------
-
-    fun loadLibrary(context: Context): Map<String, NoticeLibIcon> {
-        val all = prefs(context, NoticeFixContract.PREF_ICON_LIBRARY).all
-        val result = LinkedHashMap<String, NoticeLibIcon>()
-        for ((key, value) in all) {
-            val json = value as? String ?: continue
-            runCatching { NoticeLibIcon.fromJson(JSONObject(json)) }
-                .getOrNull()
-                ?.takeIf { it.packageName.isNotEmpty() }
-                ?.let { result[key] = it }
-        }
-        return result
-    }
-
-    /** Merges imported entries by package name; returns how many were new. */
-    fun importLibrary(context: Context, entries: List<NoticeLibIcon>): Int {
-        val existing = loadLibrary(context)
-        val editor = prefs(context, NoticeFixContract.PREF_ICON_LIBRARY).edit()
-        var added = 0
-        entries.forEach { entry ->
-            if (!existing.containsKey(entry.packageName)) added++
-            editor.putString(entry.packageName, entry.toJson().toString())
-        }
-        editor.apply()
-        return added
     }
 
     // ----- custom icons ----------------------------------------------------

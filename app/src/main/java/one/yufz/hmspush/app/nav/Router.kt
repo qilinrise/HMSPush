@@ -18,11 +18,5 @@ sealed interface Router : NavKey {
     data object FakeDevice : Router
 
     @Serializable
-    data object NoticeHome : Router
-
-    @Serializable
-    data object NoticeLibrary : Router
-
-    @Serializable
     data object NoticeCustom : Router
 }
