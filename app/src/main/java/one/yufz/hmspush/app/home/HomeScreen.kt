@@ -144,8 +144,8 @@ private fun AppBarMoreMenu(usable: Boolean) {
     if (showRestartSystemUiDialog) {
         AlertDialog(
             onDismissRequest = { showRestartSystemUiDialog = false },
-            title = { Text(text = stringResource(id = R.string.notice_restart_systemui_title)) },
-            text = { Text(text = stringResource(id = R.string.notice_restart_systemui_confirm)) },
+            title = { Text(text = stringResource(id = R.string.notice_restart_systemui)) },
+            text = { Text(text = stringResource(id = R.string.notice_restart_confirm)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -215,7 +215,7 @@ private fun AppBarMoreMenu(usable: Boolean) {
                 MenuDivider()
                 DropdownMenuItem(
                     text = {
-                        Text(text = stringResource(id = R.string.notice_restart_systemui_title))
+                        Text(text = stringResource(id = R.string.notice_restart_systemui))
                     },
                     onClick = {
                         openMoreMenu = false
