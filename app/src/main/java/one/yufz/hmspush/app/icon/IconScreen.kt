@@ -85,9 +85,10 @@ fun IconScreen(iconViewModel: IconViewModel = mavericksViewModel()) {
                 actions = {
                     var showMoreMenu by remember { mutableStateOf(false) }
 
-                    // End padding matches the home top bar, so the menu
-                    // button lines up the same way on both pages.
-                    Box(modifier = Modifier.padding(end = 16.dp)) {
+                    // The rows end with a 4 dp spacer after their
+                    // delete button, so 4 dp here puts this button's
+                    // center on the same vertical line.
+                    Box(modifier = Modifier.padding(end = 4.dp)) {
                         IconButton(onClick = { showMoreMenu = true }) {
                             Icon(imageVector = Icons.Filled.Add, contentDescription = "Add")
                         }
