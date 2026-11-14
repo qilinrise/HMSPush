@@ -56,6 +56,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import one.yufz.hmspush.R
+import one.yufz.hmspush.app.widget.PillSearchField
 import one.yufz.hmspush.common.IconData
 import one.yufz.hmspush.common.noticefix.NoticeCustomIcon
 
@@ -124,23 +125,12 @@ fun NoticeCustomScreen(viewModel: NoticeFixViewModel = rememberNoticeFixViewMode
                 .padding(padding)
                 .fillMaxSize(),
         ) {
-            TextField(
+            // Same pill search component and hint as Home and the
+            // icon page, so all three search boxes read identically.
+            PillSearchField(
                 value = query,
                 onValueChange = { query = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = { Text(text = stringResource(id = R.string.notice_search_hint)) },
-                leadingIcon = { Icon(imageVector = Icons.Filled.Search, contentDescription = null) },
-                shape = RoundedCornerShape(percent = 50),
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent,
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                ),
-                singleLine = true,
+                placeholderText = stringResource(id = R.string.menu_search),
             )
             Row(
                 modifier = Modifier
