@@ -149,7 +149,8 @@ fun preView() {
 }
 /**
  * Permanent pill search field shown below a top bar (drop-down style):
- * fully rounded, filled, no leading/trailing icons, centered text.
+ * fully rounded and filled; the box is centered on the page by
+ * its symmetric margins, hint and text keep their usual alignment.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -166,16 +167,13 @@ fun PillSearchField(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .height(52.dp),
-        placeholder = {
-            Text(
-                text = placeholderText,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        placeholder = { Text(text = placeholderText) },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Filled.Search,
+                contentDescription = null
             )
         },
-        textStyle = androidx.compose.material3.LocalTextStyle.current.copy(
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-        ),
         shape = RoundedCornerShape(percent = 50),
         colors = TextFieldDefaults.colors(
             focusedIndicatorColor = Color.Transparent,
