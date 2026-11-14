@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -219,7 +220,7 @@ fun MoreMenu(showMoreMenu: Boolean, onDismissRequest: () -> Unit) {
     var showImportDialog by remember { mutableStateOf(false) }
     val iconViewModel: IconViewModel = mavericksViewModel()
     val state by iconViewModel.collectAsState()
-    DropdownMenu(expanded = showMoreMenu, onDismissRequest = onDismissRequest, modifier = Modifier.defaultMinSize(minWidth = 160.dp)) {
+    DropdownMenu(expanded = showMoreMenu, onDismissRequest = onDismissRequest, modifier = Modifier.defaultMinSize(minWidth = 160.dp), shape = RoundedCornerShape(20.dp)) {
         DropdownMenuItem(
             text = {
                 Text(text = stringResource(id = R.string.import_from_url))

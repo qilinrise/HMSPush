@@ -34,7 +34,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -123,7 +124,7 @@ fun NoticeCustomScreen(viewModel: NoticeFixViewModel = rememberNoticeFixViewMode
                 .padding(padding)
                 .fillMaxSize(),
         ) {
-            OutlinedTextField(
+            TextField(
                 value = query,
                 onValueChange = { query = it },
                 modifier = Modifier
@@ -131,6 +132,14 @@ fun NoticeCustomScreen(viewModel: NoticeFixViewModel = rememberNoticeFixViewMode
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 placeholder = { Text(text = stringResource(id = R.string.notice_search_hint)) },
                 leadingIcon = { Icon(imageVector = Icons.Filled.Search, contentDescription = null) },
+                shape = RoundedCornerShape(percent = 50),
+                colors = TextFieldDefaults.colors(
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                ),
                 singleLine = true,
             )
             Row(

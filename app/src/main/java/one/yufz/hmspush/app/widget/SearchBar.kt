@@ -18,7 +18,10 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -76,7 +79,7 @@ fun SearchBar(
                 contentDescription = "Back"
             )
         }
-        OutlinedTextField(
+        TextField(
             value = textState.value,
             onValueChange = {
                 textState.value = it
@@ -88,11 +91,19 @@ fun SearchBar(
                 .onFocusChanged { focusState -> showClearButton = (focusState.isFocused) }
                 .focusRequester(focusRequester),
             placeholder = { Text(text = placeholderText) },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Filled.Search,
+                    contentDescription = null
+                )
+            },
+            shape = RoundedCornerShape(percent = 50),
             colors = TextFieldDefaults.colors(
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent
+                disabledIndicatorColor = Color.Transparent,
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
             ),
             trailingIcon = {
                 AnimatedVisibility(
