@@ -6,6 +6,7 @@ import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -71,9 +72,11 @@ fun SearchBar(
     BackHandler {
         back()
     }
-    Row {
-        Spacer(modifier = Modifier.width(4.dp))
-        IconButton(onClick = ::back, modifier = Modifier.align(alignment = Alignment.CenterVertically)) {
+    Row(
+        modifier = Modifier.height(64.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = ::back) {
             Icon(
                 imageVector = Icons.Default.ArrowBack,
                 contentDescription = "Back"
@@ -86,8 +89,9 @@ fun SearchBar(
                 onSearchTextChanged(it.text)
             },
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 2.dp)
+                .weight(1f)
+                .height(52.dp)
+                .padding(end = 12.dp)
                 .onFocusChanged { focusState -> showClearButton = (focusState.isFocused) }
                 .focusRequester(focusRequester),
             placeholder = { Text(text = placeholderText) },
@@ -107,18 +111,12 @@ fun SearchBar(
             ),
             trailingIcon = {
                 AnimatedVisibility(
-                    visible = showClearButton,
+                    visible = showClearButton && textState.value.text.isNotEmpty(),
                     enter = fadeIn(),
                     exit = fadeOut()
                 ) {
                     IconButton(
-                        onClick = {
-                            if (textState.value.text.isEmpty()) {
-                                back()
-                            } else {
-                                clear()
-                            }
-                        }
+                        onClick = { clear() }
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Close,

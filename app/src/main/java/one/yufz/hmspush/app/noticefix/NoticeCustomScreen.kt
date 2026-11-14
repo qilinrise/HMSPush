@@ -335,7 +335,7 @@ private fun AppRow(
                 }
                 NoticeSwitchRow(
                     title = stringResource(id = R.string.notice_no_handle),
-                    summary = stringResource(id = R.string.notice_no_handle_summary),
+                    summary = null,
                     checked = custom?.noHandle == true,
                     onCheckedChange = onNoHandleChange,
                 )
