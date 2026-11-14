@@ -28,7 +28,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -252,10 +251,6 @@ private fun MoreDropdownMenu(expanded: Boolean, info: AppInfo, zygiskEnabled: Bo
             }
         )
 
-        HorizontalDivider(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
-        )
         DropdownMenuItem(
             text = {
                 Text(text = stringResource(id = R.string.clear_hms_notification_channels))
@@ -296,10 +291,6 @@ private fun MoreDropdownMenu(expanded: Boolean, info: AppInfo, zygiskEnabled: Bo
         }
         //Unregister
         if (info.registered) {
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
-            )
             DropdownMenuItem(
                 text = {
                     Text(

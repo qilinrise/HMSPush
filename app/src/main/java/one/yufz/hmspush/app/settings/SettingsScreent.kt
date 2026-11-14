@@ -42,8 +42,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.airbnb.mvrx.compose.collectAsState
 import one.yufz.hmspush.R
-import one.yufz.hmspush.app.nav.LocalNavigator
-import one.yufz.hmspush.app.nav.Router
 import one.yufz.hmspush.app.noticefix.CheckSwitch
 import one.yufz.hmspush.app.noticefix.NoticeFuncRow
 import one.yufz.hmspush.app.noticefix.NoticeGroupCard
@@ -56,7 +54,6 @@ import one.yufz.hmspush.app.workaround.mavericksViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel = mavericksViewModel()) {
-    val navigator = LocalNavigator.current
 
     Scaffold(
         topBar = {
@@ -129,12 +126,8 @@ fun SettingsScreen(viewModel: SettingsViewModel = mavericksViewModel()) {
                         title = stringResource(id = R.string.notification_icon),
                         icon = Icons.Outlined.Palette,
                         checked = preferences.useCustomIcon,
-                        showDivider = true,
                         onCheckedChange = {
                             viewModel.updatePreference { useCustomIcon = it }
-                        },
-                        onClick = {
-                            navigator.navigate(Router.Icon)
                         }
                     )
                     if (preferences.useCustomIcon) {
