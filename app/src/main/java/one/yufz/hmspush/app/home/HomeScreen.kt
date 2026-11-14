@@ -10,6 +10,7 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -17,7 +18,6 @@ import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -57,7 +57,7 @@ import one.yufz.hmspush.app.HmsPushClient
 import one.yufz.hmspush.app.nav.LocalNavigator
 import one.yufz.hmspush.app.nav.Router
 import one.yufz.hmspush.app.widget.LifecycleAware
-import one.yufz.hmspush.app.widget.SearchBar
+import one.yufz.hmspush.app.widget.PillSearchField
 import one.yufz.hmspush.app.workaround.mavericksViewModel
 import one.yufz.hmspush.common.HMS_PACKAGE_NAME
 import one.yufz.hmspush.common.HmsCoreUtil
@@ -69,20 +69,20 @@ fun HomeScreen(homeViewModel: HomeViewModel = mavericksViewModel()) {
 
     Scaffold(
         topBar = {
-            AppBar(
-                scrollBehavior,
-                withSearch = state.usable,
-                searching = state.searching,
-                searchText = state.searchText,
-                requestSearching = { homeViewModel.setSearching(it) },
-                onSearchTextChanged = { homeViewModel.setSearchText(it) }
-            )
+            AppBar(scrollBehavior)
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
     ) { padding ->
-        Box(modifier = Modifier.padding(top = padding.calculateTopPadding())) {
+        Column(modifier = Modifier.padding(top = padding.calculateTopPadding())) {
             LifecycleAware(onResume = { homeViewModel.checkHmsCore() }) {
                 if (state.usable) {
+                    // Drop-down style search: a permanent centered pill
+                    // below the top bar.
+                    PillSearchField(
+                        value = state.searchText,
+                        onValueChange = { homeViewModel.setSearchText(it) },
+                        placeholderText = stringResource(id = R.string.menu_search),
+                    )
                     AppListScreen(state.searchText)
                 } else if (state.reason == HomeViewModel.Reason.Checking) {
                     Loading()
@@ -97,43 +97,24 @@ fun HomeScreen(homeViewModel: HomeViewModel = mavericksViewModel()) {
 @Composable
 private fun AppBar(
     scrollBehavior: TopAppBarScrollBehavior,
-    withSearch: Boolean,
-    searching: Boolean,
-    searchText: String,
-    requestSearching: (Boolean) -> Unit,
-    onSearchTextChanged: (String) -> Unit
 ) {
     TopAppBar(
         title = {
-            if (!searching) {
-                Text(text = stringResource(id = R.string.app_name))
-            }
+            Text(text = stringResource(id = R.string.app_name))
         },
         scrollBehavior = scrollBehavior,
         actions = {
-            //Search
-            if (withSearch) {
-                if (!searching) {
-                    IconButton(onClick = { requestSearching(true) }) {
-                        Icon(imageVector = Icons.Filled.Search, contentDescription = "Search")
-                    }
-                } else {
-                    SearchBar(
-                        searchText = searchText,
-                        placeholderText = stringResource(id = R.string.menu_search),
-                        onNavigateBack = { requestSearching(false) },
-                        onSearchTextChanged = onSearchTextChanged
-                    )
-                }
+            // The end padding lines the menu button up with the menu
+            // buttons of the app cards below (16.dp card margin).
+            Box(modifier = Modifier.padding(end = 16.dp)) {
+                AppBarMoreMenu()
             }
-            //More
-            AppBarMoreMenu(withSearch)
         }
     )
 }
 
 @Composable
-private fun AppBarMoreMenu(usable: Boolean) {
+private fun AppBarMoreMenu() {
     //More
     var openMoreMenu by remember { mutableStateOf(false) }
     var showRestartSystemUiDialog by remember { mutableStateOf(false) }

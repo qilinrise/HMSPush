@@ -10,6 +10,7 @@ import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
@@ -26,9 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -66,62 +65,54 @@ import androidx.compose.ui.unit.sp
 import com.airbnb.mvrx.compose.collectAsState
 import de.charlex.compose.HtmlText
 import one.yufz.hmspush.R
-import one.yufz.hmspush.app.nav.LocalNavigator
 import one.yufz.hmspush.app.widget.LoadingDialog
-import one.yufz.hmspush.app.widget.SearchBar
+import one.yufz.hmspush.app.widget.PillSearchField
 import one.yufz.hmspush.app.workaround.mavericksViewModel
 import one.yufz.xposed.set
 
 @Composable
 fun IconScreen(iconViewModel: IconViewModel = mavericksViewModel()) {
-    val navigator = LocalNavigator.current
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    var searching by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf("") }
     val state by iconViewModel.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                navigationIcon = {
-                    IconButton(onClick = { navigator.goBack() }) {
-                        Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
                 title = {
-                    if (!searching) {
-                        Text(text = stringResource(id = R.string.notification_icon))
-                    }
+                    Text(text = stringResource(id = R.string.notification_icon))
                 },
                 actions = {
-
-                    if (!searching) {
-                        IconButton(onClick = { searching = true }) {
-                            Icon(imageVector = Icons.Filled.Search, contentDescription = "Search")
-                        }
-                    } else {
-                        SearchBar(
-                            placeholderText = stringResource(id = R.string.menu_search),
-                            onNavigateBack = { searching = false },
-                            onSearchTextChanged = { iconViewModel.filter(it) }
-                        )
-                    }
-
                     var showMoreMenu by remember { mutableStateOf(false) }
 
-                    IconButton(onClick = { showMoreMenu = true }) {
-                        Icon(imageVector = Icons.Filled.Add, contentDescription = "Add")
-                    }
+                    // End padding matches the home top bar, so the menu
+                    // button lines up the same way on both pages.
+                    Box(modifier = Modifier.padding(end = 16.dp)) {
+                        IconButton(onClick = { showMoreMenu = true }) {
+                            Icon(imageVector = Icons.Filled.Add, contentDescription = "Add")
+                        }
 
-                    MoreMenu(showMoreMenu, onDismissRequest = { showMoreMenu = false })
+                        MoreMenu(showMoreMenu, onDismissRequest = { showMoreMenu = false })
+                    }
                 },
             )
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
     ) { paddingValues ->
-        Box {
+        Column(modifier = Modifier.padding(top = paddingValues.calculateTopPadding())) {
+            // Drop-down style search: a permanent centered pill below
+            // the top bar, same as Home.
+            PillSearchField(
+                value = query,
+                onValueChange = {
+                    query = it
+                    iconViewModel.filter(it)
+                },
+                placeholderText = stringResource(id = R.string.menu_search),
+            )
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = paddingValues
+                contentPadding = PaddingValues(bottom = paddingValues.calculateBottomPadding())
             ) {
                 items(state.filteredIcons) {
                     Row(

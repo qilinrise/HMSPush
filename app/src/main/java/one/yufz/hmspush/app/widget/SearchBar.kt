@@ -147,3 +147,45 @@ fun preView() {
 
     }
 }
+/**
+ * Permanent pill search field shown below a top bar (drop-down style):
+ * fully rounded, filled, no leading/trailing icons, centered text.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PillSearchField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholderText: String,
+    modifier: Modifier = Modifier,
+) {
+    TextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .height(52.dp),
+        placeholder = {
+            Text(
+                text = placeholderText,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
+        },
+        textStyle = androidx.compose.material3.LocalTextStyle.current.copy(
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        ),
+        shape = RoundedCornerShape(percent = 50),
+        colors = TextFieldDefaults.colors(
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent,
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ),
+        singleLine = true,
+        maxLines = 1,
+        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search),
+    )
+}
