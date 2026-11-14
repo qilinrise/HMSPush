@@ -185,7 +185,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = mavericksViewModel()) {
                 NoticeSectionTitle(text = stringResource(id = R.string.notice_global_title))
                 NoticeGroupCard {
                     NoticeSwitchRow(
-                        title = stringResource(id = R.string.notice_always_handle_title),
+                        title = stringResource(id = R.string.notice_always_handle),
                         summary = stringResource(id = R.string.notice_always_handle_summary),
                         checked = noticeViewModel.config.alwaysHandleProxyNotice,
                         onCheckedChange = { enabled ->
@@ -194,7 +194,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = mavericksViewModel()) {
                     )
                     NoticeGroupDivider()
                     NoticeSwitchRow(
-                        title = stringResource(id = R.string.notice_skip_grayscale_title),
+                        title = stringResource(id = R.string.notice_skip_grayscale),
                         summary = stringResource(id = R.string.notice_skip_grayscale_summary),
                         checked = noticeViewModel.config.skipGrayscale,
                         onCheckedChange = { enabled ->
