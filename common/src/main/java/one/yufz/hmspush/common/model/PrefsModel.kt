@@ -13,7 +13,6 @@ data class PrefsModel constructor(
     var tintIconColor: Boolean,
     var keepAlive: Boolean,
     var hideAppIcon: Boolean,
-    var fixNotificationIcon: Boolean,
 ) : ContentModel, Parcelable {
 
     constructor() : this(
@@ -23,8 +22,6 @@ data class PrefsModel constructor(
         tintIconColor = true,
         keepAlive = false,
         hideAppIcon = false,
-        // Added later: missing key in old preference files keeps this default.
-        fixNotificationIcon = false,
     )
 
     companion object {
@@ -36,7 +33,6 @@ data class PrefsModel constructor(
             .property("tintIconColor", PrefsModel::tintIconColor)
             .property("keepAlive", PrefsModel::keepAlive)
             .property("hideAppIcon", PrefsModel::hideAppIcon)
-            .property("fixNotificationIcon", PrefsModel::fixNotificationIcon)
             .build()
     }
 }

@@ -8,81 +8,60 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.Icon
-import android.os.SystemClock
 import android.service.notification.StatusBarNotification
 import de.robv.android.xposed.XposedHelpers
-import one.yufz.hmspush.common.IconData
-import one.yufz.hmspush.common.IconData.Companion.scaleForNotification
-import one.yufz.hmspush.common.model.PrefsModel
+import one.yufz.hmspush.common.noticefix.NoticeIconFunc
 import one.yufz.hmspush.hook.XLog
 import kotlin.math.abs
 
 /**
  * SystemUI-side notification icon pipeline, applied to every notification
- * at row inflation time:
+ * at row inflation time. It is a functional reimplementation of NoticeFix
+ * (https://github.com/xudazhu1/NoticeFix, AGPL-3.0; reimplemented from
+ * scratch, no code or assets copied):
  *
- * 1. Custom notification icons, applied globally. The HMS custom icon
- *    feature (see the IconHandler in the HMS Core process) only sees
- *    notifications posted through HMS push. Here the same per-app icons
- *    from the same icon store are applied to all other notifications too,
- *    as long as the existing "custom notification icon" preference is on.
- *    A notification whose icon already is the stored icon (the normal
- *    case for HMS push notifications, which were already handled in the
- *    HMS Core process) is detected and left untouched, so no notification
- *    is ever processed twice for the same result.
+ * - Apps flagged "do not handle" are skipped, except for proxy (push)
+ *   notifications when the always-handle-proxy preference is on: those
+ *   are posted by a push framework (opPkg differs from the target
+ *   package), which includes notifications delivered through HMS push.
+ * - When "skip grayscale" is on, notifications whose icon already
+ *   follows the grayscale specification are left completely alone.
+ * - Otherwise the enabled strategies are tried in the user's order:
+ *   the per-app custom icon, the icon library entry for the package,
+ *   and the automatic conversion of a non-grayscale icon into a
+ *   monochrome silhouette.
  *
- * 2. Grayscale repair, for notifications without a stored icon. Small
- *    icons that do not follow the Android grayscale icon specification
- *    are rendered by SystemUI as white/grey blocks, so they are converted
- *    into compliant monochrome (white + alpha) icons. This step is a
- *    functional reimplementation of the core idea of NoticeFix
- *    (https://github.com/xudazhu1/NoticeFix, AGPL-3.0); no NoticeFix code,
- *    resources or assets are used.
- *
- * Every processed notification is marked in its extras, and both steps
- * are best-effort: any failure is logged and the notification is left
- * exactly as it was.
+ * Data comes from the module app through its content provider (see
+ * [NoticeFixData]); when it is unavailable the notification is left
+ * exactly as it was. Everything is best-effort: any failure is logged
+ * and must never break SystemUI.
  */
 object NotificationIconFixer {
     private const val TAG = "NotificationIconFixer"
-
-    /** Extras marker set on notifications this pipeline already processed. */
-    const val EXTRA_ICON_FIXED = "one.yufz.hmspush.extra.NOTICE_ICON_PROCESSED"
-
-    private const val CONFIG_CACHE_MS = 60_000L
-    private const val ICON_CACHE_MS = 10 * 60_000L
-
-    @Volatile
-    private var cachedPrefs: PrefsModel? = null
-
-    @Volatile
-    private var cachedPrefsAt = 0L
-
-    @Volatile
-    private var cachedIcons: Map<String, IconData>? = null
-
-    @Volatile
-    private var cachedIconsAt = 0L
 
     fun fix(context: Context, sbn: StatusBarNotification) {
         try {
             fixInternal(context, sbn)
         } catch (t: Throwable) {
-            // Icon processing must never break SystemUI.
             XLog.e(TAG, "fix failed for ${sbn.packageName}", t)
         }
     }
 
     private fun fixInternal(context: Context, sbn: StatusBarNotification) {
         val packageName = sbn.packageName ?: return
-        // System-posted notifications already use compliant icons.
-        if (packageName == "android") return
-
         val notification = sbn.notification ?: return
-        if (notification.extras.getBoolean(EXTRA_ICON_FIXED, false)) return
 
-        val prefs = loadPrefs(context) ?: return
-        if (!prefs.useCustomIcon && !prefs.fixNotificationIcon) return
+        val snapshot = NoticeFixData.load(context) ?: return
+        val config = snapshot.config
+        val custom = snapshot.customs[packageName]
+
+        // Do-not-handle apps are skipped, with the proxy exception that
+        // defines the always-handle-proxy preference.
+        if (custom?.noHandle == true) {
+            val isProxy = sbn.opPkg != null && sbn.opPkg != packageName
+            if (!isProxy) return
+            if (!config.alwaysHandleProxyNotice) return
+        }
 
         val smallIcon = notification.smallIcon ?: return
 
@@ -91,80 +70,65 @@ object NotificationIconFixer {
             context.createPackageContext(packageName, Context.CONTEXT_IGNORE_SECURITY)
         }.getOrNull() ?: context
 
-        val currentBitmap = bitmapFromIcon(smallIcon, iconContext)
+        var decoded = false
+        var currentBitmap: Bitmap? = null
+        fun current(): Bitmap? {
+            if (!decoded) {
+                currentBitmap = bitmapFromIcon(smallIcon, iconContext)
+                decoded = true
+            }
+            return currentBitmap
+        }
 
-        // Step 1: apply the stored custom icon globally, like IconHandler
-        // does for HMS push notifications in the HMS Core process.
-        if (prefs.useCustomIcon) {
-            val iconData = iconFor(context, packageName)
-            if (iconData != null) {
-                if (currentBitmap != null && currentBitmap.sameAs(iconData.iconBitmap)) {
-                    // Already handled by the HMS-side icon feature.
-                    notification.extras.putBoolean(EXTRA_ICON_FIXED, true)
-                    return
+        if (config.skipGrayscale) {
+            val bitmap = current() ?: return
+            if (isGrayscale(bitmap)) return
+        }
+
+        for (status in snapshot.funcs) {
+            if (!status.active) continue
+            when (NoticeIconFunc.fromId(status.funcId)) {
+                NoticeIconFunc.CUSTOM -> {
+                    val bitmap = custom?.decodeBitmap()
+                    if (bitmap != null) {
+                        setSmallIcon(notification, Icon.createWithBitmap(bitmap))
+                        XLog.d(TAG, "applied custom icon for $packageName")
+                        return
+                    }
                 }
-                setSmallIcon(notification, Icon.createWithBitmap(iconData.iconBitmap))
-                if (prefs.tintIconColor) {
-                    iconData.iconColor?.let { notification.color = it }
+
+                NoticeIconFunc.LIB -> {
+                    val libIcon = snapshot.library[packageName]
+                    val bitmap = libIcon?.decodeBitmap()
+                    if (libIcon != null && bitmap != null) {
+                        setSmallIcon(notification, Icon.createWithBitmap(bitmap))
+                        libIcon.iconColor?.let { hex ->
+                            runCatching { notification.color = Color.parseColor(hex) }
+                        }
+                        XLog.d(TAG, "applied library icon for $packageName")
+                        return
+                    }
                 }
-                notification.extras.putBoolean(EXTRA_ICON_FIXED, true)
-                XLog.d(TAG, "applied stored notification icon for $packageName")
-                return
+
+                NoticeIconFunc.AUTO -> {
+                    val bitmap = current()
+                    if (bitmap != null && !isGrayscale(bitmap)) {
+                        val fixed = toMonochrome(bitmap)
+                        if (fixed != null) {
+                            setSmallIcon(notification, Icon.createWithBitmap(fixed))
+                            XLog.d(TAG, "converted non-grayscale small icon for $packageName")
+                            return
+                        }
+                    }
+                }
+
+                null -> Unit
             }
         }
-
-        // Step 2: no stored icon; repair a non-grayscale icon if enabled.
-        if (!prefs.fixNotificationIcon) return
-        val bitmap = currentBitmap ?: return
-
-        if (isGrayscale(bitmap)) {
-            notification.extras.putBoolean(EXTRA_ICON_FIXED, true)
-            return
-        }
-
-        val fixed = toMonochrome(bitmap) ?: return
-        setSmallIcon(notification, Icon.createWithBitmap(fixed))
-        notification.extras.putBoolean(EXTRA_ICON_FIXED, true)
-        XLog.d(TAG, "converted non-grayscale small icon for $packageName")
     }
 
     private fun setSmallIcon(notification: Notification, icon: Icon) {
         XposedHelpers.setObjectField(notification, "mSmallIcon", icon)
-    }
-
-    private fun loadPrefs(context: Context): PrefsModel? {
-        val now = SystemClock.elapsedRealtime()
-        if (now - cachedPrefsAt < CONFIG_CACHE_MS) {
-            return cachedPrefs
-        }
-        val prefs = runCatching { HmsServiceClient.get(context)?.preference }.getOrNull()
-        cachedPrefs = prefs
-        cachedPrefsAt = now
-        return prefs
-    }
-
-    private fun iconFor(context: Context, packageName: String): IconData? {
-        val now = SystemClock.elapsedRealtime()
-        if (cachedIcons == null || now - cachedIconsAt >= ICON_CACHE_MS) {
-            val loaded = runCatching {
-                HmsServiceClient.get(context)?.allIcon
-                    ?.mapNotNull { model ->
-                        runCatching {
-                            model.toIconData()?.let { it.scaleForNotification(context) }
-                        }.getOrNull()
-                    }
-                    ?.associateBy { it.packageName }
-            }.getOrNull()
-            if (loaded != null) {
-                cachedIcons = loaded
-                cachedIconsAt = now
-            } else if (cachedIcons == null) {
-                // HMS Core unreachable: retry on the next notification
-                // instead of caching the failure.
-                return null
-            }
-        }
-        return cachedIcons?.get(packageName)
     }
 
     private fun bitmapFromIcon(icon: Icon, context: Context): Bitmap? {
