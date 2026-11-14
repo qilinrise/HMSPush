@@ -79,7 +79,6 @@
     <string name="hmspush_zygisk_not_install">Zygisk 模块未安装</string>
     <!-- Notification icon feature ported from NoticeFix -->
     <string name="nav_home">Home</string>
-    <string name="nav_notice">Icon rules</string>
     <string name="nav_library">Library</string>
     <string name="nav_custom">Custom</string>
     <string name="notice_strategy_title">Replacement strategy order</string>
@@ -94,27 +93,14 @@
     <string name="notice_always_handle_summary">Push notifications (posted by a push framework, e.g. HMS) are still processed for apps marked do-not-handle</string>
     <string name="notice_skip_grayscale">Skip grayscale icons</string>
     <string name="notice_skip_grayscale_summary">Leave notifications whose icon already follows the grayscale spec completely alone</string>
-    <string name="notice_library_title">Icon library</string>
-    <string name="notice_library_count">Icons in library</string>
-    <string name="notice_library_refresh">Update library online</string>
-    <string name="notice_library_refresh_summary">Download the latest AndroidNotifyIconAdapt icon library</string>
-    <string name="notice_library_import">Import library file</string>
-    <string name="notice_library_import_summary">Import a library JSON file (same format as the online library)</string>
-    <string name="notice_system_title">System</string>
     <string name="notice_restart_systemui">Restart SystemUI</string>
-    <string name="notice_restart_systemui_summary">Reload hooks and configuration in SystemUI (requires root)</string>
     <string name="notice_restart_confirm">Restart SystemUI now? The status bar and navigation bar will reload briefly.</string>
     <string name="notice_confirm">OK</string>
     <string name="notice_cancel">Cancel</string>
     <string name="notice_scope_hint">The icon strategies run inside SystemUI: enable the SystemUI scope for this module in LSPosed for them to take effect.</string>
-    <string name="notice_library_refreshed">Library updated, %1$s icons in total</string>
-    <string name="notice_library_imported">Imported %1$s new icons, %2$s in total</string>
-    <string name="notice_library_refresh_failed">Library update failed, check the network and try again</string>
-    <string name="notice_library_import_invalid">That file is not a valid icon library</string>
     <string name="notice_restart_sent">SystemUI restart sent</string>
     <string name="notice_restart_failed">Restart failed, root may be unavailable</string>
     <string name="notice_search_hint">Search by name or package</string>
-    <string name="notice_library_empty">The library is empty. Update it online or import a file from the Icon rules page.</string>
     <string name="notice_filter_all">All</string>
     <string name="notice_filter_user">User</string>
     <string name="notice_filter_system">System</string>

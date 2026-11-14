@@ -7,15 +7,13 @@ import one.yufz.hmspush.common.noticefix.NoticeCustomIcon
 import one.yufz.hmspush.common.noticefix.NoticeFixConfig
 import one.yufz.hmspush.common.noticefix.NoticeFixContract
 import one.yufz.hmspush.common.noticefix.NoticeFuncStatus
-import one.yufz.hmspush.common.noticefix.NoticeLibIcon
 import one.yufz.hmspush.hook.XLog
 
-/** Immutable snapshot of everything the SystemUI icon pipeline needs. */
+/** Immutable snapshot of the NoticeFix data the SystemUI pipeline needs. */
 internal data class NoticeFixSnapshot(
     val config: NoticeFixConfig,
     /** Strategies in the order they should be tried. */
     val funcs: List<NoticeFuncStatus>,
-    val library: Map<String, NoticeLibIcon>,
     val customs: Map<String, NoticeCustomIcon>,
 )
 
@@ -58,9 +56,6 @@ internal object NoticeFixData {
                         funcs = NoticeFuncStatus.parseArray(
                             cursor.getString(cursor.getColumnIndexOrThrow(NoticeFixContract.COL_FUNCS)),
                         ),
-                        library = NoticeLibIcon.parseLibrary(
-                            cursor.getString(cursor.getColumnIndexOrThrow(NoticeFixContract.COL_LIBRARY)),
-                        ).associateBy { it.packageName },
                         customs = NoticeCustomIcon.parseArray(
                             cursor.getString(cursor.getColumnIndexOrThrow(NoticeFixContract.COL_CUSTOMS)),
                         ).associateBy { it.pkgName },

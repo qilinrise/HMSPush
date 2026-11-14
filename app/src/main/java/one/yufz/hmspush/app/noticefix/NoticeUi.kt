@@ -10,6 +10,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -105,6 +107,67 @@ fun NoticeSwitchRow(
         },
         trailingContent = {
             CheckSwitch(checked = checked, onCheckedChange = onCheckedChange)
+        },
+    )
+}
+
+/** One strategy row of the icon rules: name, description, reorder buttons, switch. */
+@Composable
+fun NoticeFuncRow(
+    status: one.yufz.hmspush.common.noticefix.NoticeFuncStatus,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    onToggle: (Boolean) -> Unit,
+    onMove: (Int) -> Unit,
+) {
+    val (titleRes, summaryRes) = when (
+        one.yufz.hmspush.common.noticefix.NoticeIconFunc.fromId(status.funcId)
+    ) {
+        one.yufz.hmspush.common.noticefix.NoticeIconFunc.CUSTOM ->
+            one.yufz.hmspush.R.string.notice_func_custom to
+                one.yufz.hmspush.R.string.notice_func_custom_summary
+        one.yufz.hmspush.common.noticefix.NoticeIconFunc.LIB ->
+            one.yufz.hmspush.R.string.notice_func_lib to
+                one.yufz.hmspush.R.string.notice_func_lib_summary
+        one.yufz.hmspush.common.noticefix.NoticeIconFunc.AUTO ->
+            one.yufz.hmspush.R.string.notice_func_auto to
+                one.yufz.hmspush.R.string.notice_func_auto_summary
+        null ->
+            one.yufz.hmspush.R.string.notice_func_custom to
+                one.yufz.hmspush.R.string.notice_func_custom_summary
+    }
+    ListItem(
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        headlineContent = {
+            Text(text = androidx.compose.ui.res.stringResource(id = titleRes))
+        },
+        supportingContent = {
+            Text(text = androidx.compose.ui.res.stringResource(id = summaryRes))
+        },
+        trailingContent = {
+            androidx.compose.foundation.layout.Row(
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                androidx.compose.material3.IconButton(
+                    onClick = { onMove(-1) },
+                    enabled = canMoveUp,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowUp,
+                        contentDescription = null,
+                    )
+                }
+                androidx.compose.material3.IconButton(
+                    onClick = { onMove(1) },
+                    enabled = canMoveDown,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowDown,
+                        contentDescription = null,
+                    )
+                }
+                CheckSwitch(checked = status.active, onCheckedChange = onToggle)
+            }
         },
     )
 }

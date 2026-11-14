@@ -45,8 +45,12 @@ import one.yufz.hmspush.R
 import one.yufz.hmspush.app.nav.LocalNavigator
 import one.yufz.hmspush.app.nav.Router
 import one.yufz.hmspush.app.noticefix.CheckSwitch
+import one.yufz.hmspush.app.noticefix.NoticeFuncRow
 import one.yufz.hmspush.app.noticefix.NoticeGroupCard
 import one.yufz.hmspush.app.noticefix.NoticeGroupDivider
+import one.yufz.hmspush.app.noticefix.NoticeSectionTitle
+import one.yufz.hmspush.app.noticefix.NoticeSwitchRow
+import one.yufz.hmspush.app.noticefix.rememberNoticeFixViewModel
 import one.yufz.hmspush.app.workaround.mavericksViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -161,6 +165,49 @@ fun SettingsScreen(viewModel: SettingsViewModel = mavericksViewModel()) {
                         },
                     )
                 }
+
+                // Ported NoticeFix rules: strategy order and global toggles.
+                val noticeViewModel = rememberNoticeFixViewModel()
+                NoticeSectionTitle(text = stringResource(id = R.string.notice_strategy_title))
+                NoticeGroupCard {
+                    val sortedFuncs = noticeViewModel.funcs.sortedBy { it.order }
+                    sortedFuncs.forEachIndexed { index, status ->
+                        if (index > 0) NoticeGroupDivider()
+                        NoticeFuncRow(
+                            status = status,
+                            canMoveUp = index > 0,
+                            canMoveDown = index < sortedFuncs.lastIndex,
+                            onToggle = { noticeViewModel.setFuncActive(status.funcId, it) },
+                            onMove = { noticeViewModel.moveFunc(status.funcId, it) },
+                        )
+                    }
+                }
+                NoticeSectionTitle(text = stringResource(id = R.string.notice_global_title))
+                NoticeGroupCard {
+                    NoticeSwitchRow(
+                        title = stringResource(id = R.string.notice_always_handle_title),
+                        summary = stringResource(id = R.string.notice_always_handle_summary),
+                        checked = noticeViewModel.config.alwaysHandleProxyNotice,
+                        onCheckedChange = { enabled ->
+                            noticeViewModel.updateConfig { it.copy(alwaysHandleProxyNotice = enabled) }
+                        },
+                    )
+                    NoticeGroupDivider()
+                    NoticeSwitchRow(
+                        title = stringResource(id = R.string.notice_skip_grayscale_title),
+                        summary = stringResource(id = R.string.notice_skip_grayscale_summary),
+                        checked = noticeViewModel.config.skipGrayscale,
+                        onCheckedChange = { enabled ->
+                            noticeViewModel.updateConfig { it.copy(skipGrayscale = enabled) }
+                        },
+                    )
+                }
+                Text(
+                    text = stringResource(id = R.string.notice_scope_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
+                )
             }
 
         }

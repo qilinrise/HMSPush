@@ -10,6 +10,7 @@ import android.graphics.drawable.Drawable
 import android.graphics.drawable.Icon
 import android.service.notification.StatusBarNotification
 import de.robv.android.xposed.XposedHelpers
+import one.yufz.hmspush.common.IconData.Companion.scaleForNotification
 import one.yufz.hmspush.common.noticefix.NoticeIconFunc
 import one.yufz.hmspush.hook.XLog
 import kotlin.math.abs
@@ -98,13 +99,14 @@ object NotificationIconFixer {
                 }
 
                 NoticeIconFunc.LIB -> {
-                    val libIcon = snapshot.library[packageName]
-                    val bitmap = libIcon?.decodeBitmap()
-                    if (libIcon != null && bitmap != null) {
-                        setSmallIcon(notification, Icon.createWithBitmap(bitmap))
-                        libIcon.iconColor?.let { hex ->
-                            runCatching { notification.color = Color.parseColor(hex) }
-                        }
+                    // The library is the HMS icon subscription (the one
+                    // managed on the icon page): there is a single library
+                    // for both HMS push and SystemUI notifications.
+                    val libIcon = HmsIconLibraryClient.loadIcons(context)[packageName]
+                    if (libIcon != null) {
+                        val scaled = libIcon.scaleForNotification(iconContext)
+                        setSmallIcon(notification, Icon.createWithBitmap(scaled.iconBitmap))
+                        libIcon.iconColor?.let { notification.color = it }
                         XLog.d(TAG, "applied library icon for $packageName")
                         return
                     }

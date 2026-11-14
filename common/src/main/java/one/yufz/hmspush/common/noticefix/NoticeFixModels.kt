@@ -20,17 +20,11 @@ object NoticeFixContract {
 
     const val COL_CONFIG = "config"
     const val COL_FUNCS = "funcs"
-    const val COL_LIBRARY = "library"
     const val COL_CUSTOMS = "customs"
 
     const val PREF_GLOBAL_CONFIG = "noticefix_global_config"
-    const val PREF_ICON_LIBRARY = "noticefix_icon_library"
     const val PREF_CUSTOM_ICONS = "noticefix_custom_icons"
     const val PREF_FUNC_ORDER = "noticefix_func_order"
-
-    /** Default online source of the icon library (AndroidNotifyIconAdapt). */
-    const val DEFAULT_LIBRARY_URL =
-        "https://raw.githubusercontent.com/fankes/AndroidNotifyIconAdapt/main/APP/NotifyIconsSupportConfig.json"
 }
 
 fun decodeBase64Bitmap(base64: String?): Bitmap? {
@@ -45,56 +39,6 @@ fun encodeBitmapToBase64(bitmap: Bitmap): String {
     val stream = java.io.ByteArrayOutputStream()
     bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
     return Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)
-}
-
-/** One icon library entry; same field layout as the adapt library JSON. */
-data class NoticeLibIcon(
-    val appName: String,
-    val packageName: String,
-    /** Base64 encoded PNG of the monochrome icon. */
-    val iconBitmap: String,
-    /** Hex color string such as "#RRGGBB", may be empty. */
-    val iconColor: String? = null,
-    val contributorName: String? = null,
-) {
-    fun decodeBitmap(): Bitmap? = decodeBase64Bitmap(iconBitmap)
-
-    fun toJson(): JSONObject = JSONObject().apply {
-        put("appName", appName)
-        put("packageName", packageName)
-        put("iconBitmap", iconBitmap)
-        put("iconColor", iconColor ?: "")
-        put("contributorName", contributorName ?: "")
-    }
-
-    companion object {
-        fun fromJson(obj: JSONObject): NoticeLibIcon = NoticeLibIcon(
-            appName = obj.optString("appName"),
-            packageName = obj.optString("packageName"),
-            iconBitmap = obj.optString("iconBitmap"),
-            iconColor = obj.optString("iconColor").ifEmpty { null },
-            contributorName = obj.optString("contributorName").ifEmpty { null },
-        )
-
-        /** Parses a whole library file: a JSON array of entries. */
-        fun parseLibrary(json: String): List<NoticeLibIcon> {
-            val array = JSONArray(json)
-            val result = ArrayList<NoticeLibIcon>(array.length())
-            for (i in 0 until array.length()) {
-                runCatching { fromJson(array.getJSONObject(i)) }
-                    .getOrNull()
-                    ?.takeIf { it.packageName.isNotEmpty() && it.iconBitmap.isNotEmpty() }
-                    ?.let(result::add)
-            }
-            return result
-        }
-
-        fun toJsonArray(icons: Collection<NoticeLibIcon>): String {
-            val array = JSONArray()
-            icons.forEach { array.put(it.toJson()) }
-            return array.toString()
-        }
-    }
 }
 
 /** A per-app custom icon assignment plus the do-not-handle flag. */
