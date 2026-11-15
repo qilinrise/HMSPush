@@ -25,7 +25,10 @@ internal data class NoticeFixSnapshot(
  */
 internal object NoticeFixData {
     private const val TAG = "NoticeFixData"
-    private const val CACHE_MS = 60_000L
+    // Short cache: a long one makes a just-changed custom icon look
+    // broken, because notifications arriving inside the window are
+    // processed with the snapshot taken before the change.
+    private const val CACHE_MS = 10_000L
 
     @Volatile
     private var cached: NoticeFixSnapshot? = null
@@ -47,6 +50,7 @@ internal object NoticeFixData {
                 null,
             )?.use { cursor ->
                 if (!cursor.moveToFirst()) {
+                    XLog.d(TAG, "provider returned an empty cursor")
                     null
                 } else {
                     NoticeFixSnapshot(
@@ -71,6 +75,11 @@ internal object NoticeFixData {
         if (snapshot != null) {
             cached = snapshot
             cachedAt = now
+            XLog.d(
+                TAG,
+                "loaded snapshot: config=${snapshot.config} funcs=${snapshot.funcs} " +
+                    "customs=${snapshot.customs.keys}",
+            )
         }
         return snapshot ?: cached
     }

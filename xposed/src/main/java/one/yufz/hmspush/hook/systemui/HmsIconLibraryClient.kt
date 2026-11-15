@@ -19,7 +19,11 @@ import one.yufz.hmspush.hook.XLog
  */
 internal object HmsIconLibraryClient {
     private const val TAG = "HmsIconLibraryClient"
-    private const val CACHE_MS = 10 * 60_000L
+    // Short cache, and empty results are never cached: this client
+    // depends on the HMS Core process being up and hooked, so an early
+    // empty result (HMS not ready yet) must not wedge the library
+    // strategy for minutes afterwards.
+    private const val CACHE_MS = 60_000L
 
     @Volatile
     private var cachedIcons: Map<String, IconData>? = null
@@ -43,10 +47,14 @@ internal object HmsIconLibraryClient {
         }.onFailure {
             XLog.d(TAG, "load subscription icons failed: $it")
         }.getOrNull()
-        if (loaded != null) {
+        if (!loaded.isNullOrEmpty()) {
             cachedIcons = loaded
             cachedAt = now
+            XLog.d(TAG, "loaded ${loaded.size} subscription icons via HMS bridge")
             return loaded
+        }
+        if (loaded != null) {
+            XLog.d(TAG, "HMS bridge returned 0 icons (HMS Core not ready or library empty), not caching")
         }
         return cachedIcons ?: emptyMap()
     }

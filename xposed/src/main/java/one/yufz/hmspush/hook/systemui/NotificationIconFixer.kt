@@ -25,8 +25,12 @@ import kotlin.math.abs
  *   notifications when the always-handle-proxy preference is on: those
  *   are posted by a push framework (opPkg differs from the target
  *   package), which includes notifications delivered through HMS push.
- * - When "skip grayscale" is on, notifications whose icon already
- *   follows the grayscale specification are left completely alone.
+ * - When "skip grayscale" is on, only the automatic conversion is
+ *   skipped for notifications whose icon already follows the grayscale
+ *   specification. Explicit per-app assignments (custom icon, icon
+ *   library) always win: most apps' small icons are already monochrome
+ *   silhouettes, so vetoing the whole pipeline on grayscale would make
+ *   custom and library icons unusable for exactly those apps.
  * - Otherwise the enabled strategies are tried in the user's order:
  *   the per-app custom icon, the icon library entry for the package,
  *   and the automatic conversion of a non-grayscale icon into a
@@ -52,19 +56,39 @@ object NotificationIconFixer {
         val packageName = sbn.packageName ?: return
         val notification = sbn.notification ?: return
 
-        val snapshot = NoticeFixData.load(context) ?: return
+        val snapshot = NoticeFixData.load(context)
+        if (snapshot == null) {
+            XLog.d(TAG, "no NoticeFix data (provider unavailable?) for $packageName, leaving icon untouched")
+            return
+        }
         val config = snapshot.config
         val custom = snapshot.customs[packageName]
+        XLog.d(
+            TAG,
+            "check $packageName opPkg=${sbn.opPkg} custom=${custom != null} " +
+                "customIcon=${custom?.iconBase64 != null} noHandle=${custom?.noHandle} " +
+                "skipGrayscale=${config.skipGrayscale} funcs=${snapshot.funcs}",
+        )
 
         // Do-not-handle apps are skipped, with the proxy exception that
         // defines the always-handle-proxy preference.
         if (custom?.noHandle == true) {
             val isProxy = sbn.opPkg != null && sbn.opPkg != packageName
-            if (!isProxy) return
-            if (!config.alwaysHandleProxyNotice) return
+            if (!isProxy) {
+                XLog.d(TAG, "skip $packageName: flagged do-not-handle, not a proxy notice")
+                return
+            }
+            if (!config.alwaysHandleProxyNotice) {
+                XLog.d(TAG, "skip $packageName: do-not-handle proxy notice, always-handle is off")
+                return
+            }
         }
 
-        val smallIcon = notification.smallIcon ?: return
+        val smallIcon = notification.smallIcon
+        if (smallIcon == null) {
+            XLog.d(TAG, "skip $packageName: notification has no small icon")
+            return
+        }
 
         // Icon resources belong to the posting app; load them with its context.
         val iconContext = runCatching {
@@ -81,20 +105,22 @@ object NotificationIconFixer {
             return currentBitmap
         }
 
-        if (config.skipGrayscale) {
-            val bitmap = current() ?: return
-            if (isGrayscale(bitmap)) return
-        }
-
         for (status in snapshot.funcs) {
             if (!status.active) continue
             when (NoticeIconFunc.fromId(status.funcId)) {
                 NoticeIconFunc.CUSTOM -> {
-                    val bitmap = custom?.decodeBitmap()
-                    if (bitmap != null) {
-                        setSmallIcon(notification, Icon.createWithBitmap(bitmap))
-                        XLog.d(TAG, "applied custom icon for $packageName")
-                        return
+                    if (custom == null) {
+                        XLog.d(TAG, "custom miss for $packageName: no custom entry")
+                    } else if (custom.iconBase64 == null) {
+                        XLog.d(TAG, "custom miss for $packageName: entry has no icon bitmap")
+                    } else {
+                        val bitmap = custom.decodeBitmap()
+                        if (bitmap != null) {
+                            setSmallIcon(notification, Icon.createWithBitmap(bitmap))
+                            XLog.d(TAG, "applied custom icon for $packageName")
+                            return
+                        }
+                        XLog.d(TAG, "custom miss for $packageName: bitmap decode failed")
                     }
                 }
 
@@ -102,7 +128,8 @@ object NotificationIconFixer {
                     // The library is the HMS icon subscription (the one
                     // managed on the icon page): there is a single library
                     // for both HMS push and SystemUI notifications.
-                    val libIcon = HmsIconLibraryClient.loadIcons(context)[packageName]
+                    val libIcons = HmsIconLibraryClient.loadIcons(context)
+                    val libIcon = libIcons[packageName]
                     if (libIcon != null) {
                         val scaled = libIcon.scaleForNotification(iconContext)
                         setSmallIcon(notification, Icon.createWithBitmap(scaled.iconBitmap))
@@ -110,23 +137,33 @@ object NotificationIconFixer {
                         XLog.d(TAG, "applied library icon for $packageName")
                         return
                     }
+                    XLog.d(TAG, "library miss for $packageName: ${libIcons.size} icons loaded, none for this package")
                 }
 
                 NoticeIconFunc.AUTO -> {
                     val bitmap = current()
-                    if (bitmap != null && !isGrayscale(bitmap)) {
+                    if (bitmap == null) {
+                        XLog.d(TAG, "auto miss for $packageName: could not decode current small icon")
+                    } else if (isGrayscale(bitmap)) {
+                        // "Skip grayscale" applies here only: an already
+                        // compliant icon needs no conversion, but that
+                        // must not veto custom/library assignments above.
+                        XLog.d(TAG, "auto skip for $packageName: small icon is already grayscale")
+                    } else {
                         val fixed = toMonochrome(bitmap)
                         if (fixed != null) {
                             setSmallIcon(notification, Icon.createWithBitmap(fixed))
                             XLog.d(TAG, "converted non-grayscale small icon for $packageName")
                             return
                         }
+                        XLog.d(TAG, "auto miss for $packageName: monochrome conversion failed")
                     }
                 }
 
                 null -> Unit
             }
         }
+        XLog.d(TAG, "no strategy applied for $packageName")
     }
 
     private fun setSmallIcon(notification: Notification, icon: Icon) {
