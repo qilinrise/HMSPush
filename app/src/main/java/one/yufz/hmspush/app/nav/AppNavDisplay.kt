@@ -1,5 +1,9 @@
 package one.yufz.hmspush.app.nav
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
@@ -21,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
+import androidx.navigation3.ui.NavDisplayTransitionEffects
 import one.yufz.hmspush.R
 import one.yufz.hmspush.app.fake.FakeDeviceScreen
 import one.yufz.hmspush.app.home.HomeScreen
@@ -77,6 +82,34 @@ fun AppNavDisplay(
                 modifier = Modifier.weight(1f),
                 entries = navigationState.toEntries(appEntryProvider),
                 onBack = { navigator.goBack() },
+                // One plain crossfade for every switch. The library
+                // defaults slide scenes in/out and clip the moving
+                // scene with rounded corners (plus a dim on the scene
+                // below); worse, swapping one top-level tab for
+                // another can be read as a pop instead of a push, so
+                // some tab switches animated in the opposite
+                // direction. A single fade for forward, pop and
+                // predictive pop keeps all tab switches identical,
+                // and the effects below turn the corner clip and dim
+                // off entirely.
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(200)) togetherWith
+                        fadeOut(animationSpec = tween(200))
+                },
+                popTransitionSpec = {
+                    fadeIn(animationSpec = tween(200)) togetherWith
+                        fadeOut(animationSpec = tween(200))
+                },
+                predictivePopTransitionSpec = { _ ->
+                    fadeIn(animationSpec = tween(200)) togetherWith
+                        fadeOut(animationSpec = tween(200))
+                },
+                transitionEffects = NavDisplayTransitionEffects(
+                    enableCornerClip = false,
+                    dimAmount = 0f,
+                    blockInputDuringTransition = true,
+                    popDirectionFollowsSwipeEdge = false,
+                ),
             )
 
             NavigationBar {

@@ -80,15 +80,15 @@ fun IconScreen(iconViewModel: IconViewModel = mavericksViewModel()) {
         topBar = {
             TopAppBar(
                 title = {
-                    Text(text = stringResource(id = R.string.notification_icon))
+                    Text(text = stringResource(id = R.string.notification_icons_title))
                 },
                 actions = {
                     var showMoreMenu by remember { mutableStateOf(false) }
 
-                    // Same 32 dp end inset as the home top bar, so
-                    // this button sits on the same vertical line as
-                    // Home's menu button and the rows' delete buttons.
-                    Box(modifier = Modifier.padding(end = 32.dp)) {
+                    // Same 4 dp end inset as the home top bar: the
+                    // icon's right edge lands 16 dp from the right
+                    // edge, mirroring the title's left inset.
+                    Box(modifier = Modifier.padding(end = 4.dp)) {
                         IconButton(onClick = { showMoreMenu = true }) {
                             Icon(imageVector = Icons.Filled.Add, contentDescription = "Add")
                         }
@@ -187,9 +187,13 @@ fun IconScreen(iconViewModel: IconViewModel = mavericksViewModel()) {
                         IconButton(onClick = { iconViewModel.deleteIcon(it.packageName) }) {
                             Icon(imageVector = Icons.Filled.Close, contentDescription = "Delete")
                         }
-                        // 32 dp trailing inset: the delete buttons line
-                        // up with Home's app-card menu buttons.
-                        Spacer(modifier = Modifier.width(32.dp))
+                        // 4 dp trailing inset: the delete icon's right
+                        // edge lands 16 dp from the right edge, the
+                        // same inset the row content starts with on
+                        // the left (8 dp row spacer + 8 dp icon
+                        // padding) and the top bars use for their
+                        // titles.
+                        Spacer(modifier = Modifier.width(4.dp))
                     }
                 }
             }

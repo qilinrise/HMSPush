@@ -36,6 +36,7 @@
     <string name="keep_history_message_summary">Some Apps like QQ only show the latest message, turn on this switch to keep the history</string>
 
     <string name="notification_icon">Custom Notification Icon</string>
+    <string name="notification_icons_title">Notification Icons</string>
     <string name="tint_notification_icon">Tint Icon Color On Notification Panel</string>
     <string name="tint_notification_icon_summary">May not work on some device</string>
     <string name="importing">Importing…</string>

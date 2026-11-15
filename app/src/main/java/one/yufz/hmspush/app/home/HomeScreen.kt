@@ -104,10 +104,11 @@ private fun AppBar(
         },
         scrollBehavior = scrollBehavior,
         actions = {
-            // Align the menu button's center with the app cards' menu
-            // buttons below: card margin 16 + list item padding 16
-            // puts their right edge 32 dp from the screen edge.
-            Box(modifier = Modifier.padding(end = 32.dp)) {
+            // Mirror the title's inset: the title text starts 16 dp
+            // from the left edge, so this button gets 4 dp of end
+            // padding, which puts the icon's right edge 16 dp from
+            // the right edge (48 dp button, icon centered).
+            Box(modifier = Modifier.padding(end = 4.dp)) {
                 AppBarMoreMenu()
             }
         }
