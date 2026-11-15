@@ -73,7 +73,10 @@ class NoticeFixViewModel(application: Application) : AndroidViewModel(applicatio
                     pm.getInstalledApplications(PackageManager.GET_META_DATA)
                         .map { info ->
                             InstalledApp(
-                                label = info.loadLabel(pm).toString(),
+                                // Some apps ship labels with trailing
+                                // whitespace/newlines; trim so the label
+                                // can never reserve a phantom text line.
+                                label = info.loadLabel(pm).toString().trim(),
                                 packageName = info.packageName,
                                 icon = info.loadIcon(pm),
                                 isSystem = info.flags and ApplicationInfo.FLAG_SYSTEM != 0,

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -31,8 +32,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -49,7 +48,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -238,37 +236,49 @@ private fun AppRow(
         if (custom?.noHandle == true) add(stringResource(id = R.string.notice_status_no_handle))
     }
     Column {
-        ListItem(
-            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-            headlineContent = { Text(text = app.label) },
-            supportingContent = {
-                Column {
-                    Text(text = app.packageName)
-                    if (statusParts.isNotEmpty()) {
-                        Text(
-                            text = statusParts.joinToString(" · "),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
-            },
-            leadingContent = {
-                Image(
-                    painter = rememberDrawablePainter(drawable = app.icon),
-                    contentDescription = null,
-                    modifier = Modifier.size(40.dp),
+        // Hand-built row instead of M3 ListItem: ListItem picks a
+        // fixed min-height variant per row (two-line vs three-line),
+        // and on some apps it landed on the three-line variant,
+        // leaving a phantom blank line under the package name. Here
+        // the height is exactly the visible content.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Image(
+                painter = rememberDrawablePainter(drawable = app.icon),
+                contentDescription = null,
+                modifier = Modifier.size(40.dp),
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = app.label,
+                    style = MaterialTheme.typography.bodyLarge,
                 )
-            },
-            trailingContent = {
-                IconButton(onClick = onToggleExpand) {
-                    Icon(
-                        imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                        contentDescription = null,
+                Text(
+                    text = app.packageName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (statusParts.isNotEmpty()) {
+                    Text(
+                        text = statusParts.joinToString(" · "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
-            },
-        )
+            }
+            IconButton(onClick = onToggleExpand) {
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         if (expanded) {
             val libBitmap = libIcon?.iconBitmap
             val customBitmap = remember(custom?.iconBase64) { custom?.decodeBitmap() }
