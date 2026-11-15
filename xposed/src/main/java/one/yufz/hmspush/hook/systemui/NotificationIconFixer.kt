@@ -13,6 +13,7 @@ import de.robv.android.xposed.XposedHelpers
 import one.yufz.hmspush.common.IconData.Companion.scaleForNotification
 import one.yufz.hmspush.common.noticefix.NoticeIconFunc
 import one.yufz.hmspush.hook.XLog
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 
 /**
@@ -43,6 +44,70 @@ import kotlin.math.abs
  */
 object NotificationIconFixer {
     private const val TAG = "NotificationIconFixer"
+
+    /**
+     * Packages whose replacement icon must be shown with its original
+     * colours instead of the system's silhouette treatment.
+     *
+     * Android renders every notification small icon as a tinted
+     * silhouette: the shade header applies an SRC_ATOP colour filter
+     * (Notification.Builder.processSmallIconColor) and the status bar
+     * applies a colour-matrix filter (StatusBarIconView), both of
+     * which keep only the icon's alpha channel. A replacement bitmap
+     * that is multicoloured or has an opaque background (a typical
+     * picked app icon) degenerates into a solid blob under that
+     * treatment, so replacing mSmallIcon alone is invisible. This is
+     * the display half of NoticeFix's "show coloured icons" feature;
+     * [HookSystemUI] consults this set to skip the tinting for exactly
+     * the packages listed here. Single-colour silhouettes on a
+     * transparent background are NOT listed: the native tinted
+     * rendering is what they are designed for.
+     */
+    private val coloredDisplayPackages: MutableSet<String> = ConcurrentHashMap.newKeySet()
+
+    fun isColoredDisplay(packageName: String?): Boolean =
+        packageName != null && coloredDisplayPackages.contains(packageName)
+
+    private fun registerDisplayMode(packageName: String, bitmap: Bitmap) {
+        val colored = needsColoredDisplay(bitmap)
+        if (colored) {
+            coloredDisplayPackages.add(packageName)
+        } else {
+            coloredDisplayPackages.remove(packageName)
+        }
+        XLog.d(TAG, "display mode for $packageName: ${if (colored) "colored" else "silhouette"}")
+    }
+
+    /**
+     * A replacement bitmap needs coloured display when the silhouette
+     * treatment would destroy it: either it is (nearly) fully opaque,
+     * so tinting fills the whole square, or its opaque pixels use more
+     * than one colour. A single-colour glyph on transparency renders
+     * correctly as a tinted silhouette and returns false.
+     */
+    private fun needsColoredDisplay(bitmap: Bitmap): Boolean {
+        val sample = if (bitmap.width > 64 || bitmap.height > 64) {
+            Bitmap.createScaledBitmap(bitmap, 64, 64, true)
+        } else {
+            bitmap
+        }
+        val pixels = IntArray(sample.width * sample.height)
+        sample.getPixels(pixels, 0, sample.width, 0, 0, sample.width, sample.height)
+        var opaque = 0
+        val colors = HashSet<Int>()
+        for (pixel in pixels) {
+            if (Color.alpha(pixel) > 128) {
+                opaque++
+                colors.add(
+                    (Color.red(pixel) shr 4 shl 8) or (Color.green(pixel) shr 4 shl 4) or
+                        (Color.blue(pixel) shr 4),
+                )
+                if (colors.size > 1) return true
+            }
+        }
+        if (opaque == 0) return false
+        return opaque.toDouble() / pixels.size > 0.98
+    }
 
     fun fix(context: Context, sbn: StatusBarNotification) {
         try {
@@ -117,6 +182,7 @@ object NotificationIconFixer {
                         val bitmap = custom.decodeBitmap()
                         if (bitmap != null) {
                             setSmallIcon(notification, Icon.createWithBitmap(bitmap))
+                            registerDisplayMode(packageName, bitmap)
                             XLog.d(TAG, "applied custom icon for $packageName")
                             return
                         }
@@ -133,6 +199,7 @@ object NotificationIconFixer {
                     if (libIcon != null) {
                         val scaled = libIcon.scaleForNotification(iconContext)
                         setSmallIcon(notification, Icon.createWithBitmap(scaled.iconBitmap))
+                        registerDisplayMode(packageName, scaled.iconBitmap)
                         libIcon.iconColor?.let { notification.color = it }
                         XLog.d(TAG, "applied library icon for $packageName")
                         return

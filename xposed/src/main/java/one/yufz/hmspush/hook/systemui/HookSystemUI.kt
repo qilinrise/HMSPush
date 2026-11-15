@@ -1,12 +1,16 @@
 package one.yufz.hmspush.hook.systemui
 
 import android.app.AndroidAppHelper
+import android.app.Notification
+import android.content.pm.ApplicationInfo
 import android.service.notification.StatusBarNotification
+import android.widget.RemoteViews
 import de.robv.android.xposed.XposedHelpers
 import one.yufz.hmspush.hook.XLog
 import one.yufz.xposed.getOrNull
 import one.yufz.xposed.hook
 import one.yufz.xposed.hookAllMethods
+import java.lang.reflect.Method
 
 /**
  * SystemUI entry point for the notification icon fix.
@@ -23,6 +27,21 @@ import one.yufz.xposed.hookAllMethods
  * Running the fix twice for one notification is harmless: custom and
  * library application are idempotent, and the automatic conversion
  * leaves an already-grayscale (e.g. just replaced) icon alone.
+ *
+ * Replacing the small icon is only half of the job: Android renders
+ * small icons as tinted silhouettes (an SRC_ATOP filter in the shade
+ * header, a colour matrix in the status bar), which reduces a
+ * coloured or opaque-background replacement bitmap to a solid blob.
+ * For packages the fixer flags as coloured (see
+ * [NotificationIconFixer.isColoredDisplay]) two display hooks skip
+ * that tinting, mirroring NoticeFix's coloured-icon display:
+ *
+ * - `Notification.Builder.processSmallIconColor`: marks the header
+ *   icon as "no original colour" (COLOR_INVALID, so CachingIconView
+ *   applies no filter and drops its background) and skips the
+ *   framework's own tinting for the package.
+ * - `StatusBarIconView.updateIconColor`: skipped for the package, so
+ *   the status-bar icon keeps its original colours too.
  *
  * All lookups are defensive: on ROMs where the expected classes or
  * methods are absent (or renamed), that hook is skipped with a log
@@ -45,6 +64,120 @@ class HookSystemUI {
     fun hook(classLoader: ClassLoader) {
         hookNotificationListener(classLoader)
         hookRowBinder(classLoader)
+        hookColoredDisplay(classLoader)
+    }
+
+    private fun hookColoredDisplay(classLoader: ClassLoader) {
+        hookSmallIconColor()
+        hookStatusBarIconColor(classLoader)
+    }
+
+    private fun hookSmallIconColor() {
+        try {
+            Notification.Builder::class.java.hookAllMethods("processSmallIconColor") {
+                doBefore {
+                    try {
+                        val contentView = args.getOrNull(1) as? RemoteViews
+                        if (contentView != null) {
+                            val packageName = realPackageName(thisObject, contentView)
+                            if (NotificationIconFixer.isColoredDisplay(packageName)) {
+                                // COLOR_INVALID tells CachingIconView to
+                                // leave the icon's colours alone (and drop
+                                // its tinted background); skipping the
+                                // original method stops the framework from
+                                // overwriting that with the contrast colour.
+                                contentView.setInt(
+                                    android.R.id.icon,
+                                    "setOriginalIconColor",
+                                    // Notification.COLOR_INVALID
+                                    0,
+                                )
+                                result = if ((method as? Method)?.returnType ==
+                                    java.lang.Boolean.TYPE
+                                ) {
+                                    true
+                                } else {
+                                    null
+                                }
+                                XLog.d(TAG, "colored display: skipped small icon tinting for $packageName")
+                            }
+                        }
+                    } catch (t: Throwable) {
+                        XLog.e(TAG, "processSmallIconColor handling failed", t)
+                    }
+                }
+            }
+            XLog.d(TAG, "hooked Notification.Builder.processSmallIconColor")
+        } catch (t: Throwable) {
+            XLog.e(TAG, "hooking processSmallIconColor failed", t)
+        }
+    }
+
+    private fun hookStatusBarIconColor(classLoader: ClassLoader) {
+        try {
+            val iconView = XposedHelpers.findClassIfExists(
+                "com.android.systemui.statusbar.StatusBarIconView",
+                classLoader,
+            )
+            if (iconView == null) {
+                XLog.d(TAG, "StatusBarIconView not found, status bar coloured display unavailable on this ROM")
+                return
+            }
+            iconView.hookAllMethods("updateIconColor") {
+                doBefore {
+                    try {
+                        val sbn = runCatching {
+                            XposedHelpers.getObjectField(thisObject, "mNotification")
+                        }.getOrNull() as? StatusBarNotification
+                        if (NotificationIconFixer.isColoredDisplay(sbn?.packageName)) {
+                            result = null
+                        }
+                    } catch (t: Throwable) {
+                        XLog.e(TAG, "updateIconColor handling failed", t)
+                    }
+                }
+            }
+            XLog.d(TAG, "hooked StatusBarIconView.updateIconColor")
+        } catch (t: Throwable) {
+            XLog.e(TAG, "hooking StatusBarIconView failed", t)
+        }
+    }
+
+    /**
+     * The package a [Notification.Builder] is building for. The builder
+     * does not carry it directly, so read it from the notification's
+     * app-info extra (written by the posting side), falling back to
+     * the substitution name and then to the RemoteViews' own package.
+     */
+    private fun realPackageName(builder: Any?, contentView: RemoteViews?): String? {
+        if (builder != null) {
+            val notification = runCatching {
+                XposedHelpers.getObjectField(builder, "mN")
+            }.getOrNull() ?: runCatching {
+                XposedHelpers.getObjectField(builder, "mNotification")
+            }.getOrNull()
+            if (notification is Notification) {
+                val extras = notification.extras
+                if (extras != null) {
+                    @Suppress("DEPRECATION")
+                    val appInfo = runCatching {
+                        extras.getParcelable("android.appInfo") as? ApplicationInfo
+                    }.getOrNull()
+                    if (!appInfo?.packageName.isNullOrEmpty()) return appInfo?.packageName
+                    val substName = runCatching { extras.getString("android.substName") }.getOrNull()
+                    if (!substName.isNullOrEmpty()) return substName
+                }
+            }
+        }
+        if (contentView != null) {
+            val rvPackage = runCatching {
+                XposedHelpers.callMethod(contentView, "getPackage") as? String
+            }.getOrNull()
+            if (!rvPackage.isNullOrEmpty() && rvPackage != "com.android.systemui") {
+                return rvPackage
+            }
+        }
+        return null
     }
 
     private fun hookNotificationListener(classLoader: ClassLoader) {
