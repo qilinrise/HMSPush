@@ -82,14 +82,12 @@
     <string name="nav_home">Home</string>
     <string name="nav_library">Library</string>
     <string name="nav_custom">Custom</string>
-    <string name="notice_strategy_title">Replacement strategy order</string>
     <string name="notice_func_custom">Custom icon</string>
     <string name="notice_func_custom_summary">Use the custom icon set for the app</string>
     <string name="notice_func_lib">Icon library</string>
     <string name="notice_func_lib_summary">Use the library icon matched by package name</string>
     <string name="notice_func_auto">Auto fix</string>
     <string name="notice_func_auto_summary">Convert non-grayscale icons to monochrome</string>
-    <string name="notice_global_title">Global</string>
     <string name="notice_always_handle">Always handle push notifications</string>
     <string name="notice_always_handle_summary">Push notifications (posted by a push framework, e.g. HMS) are still processed for apps marked do-not-handle</string>
     <string name="notice_skip_grayscale">Skip grayscale icons</string>
@@ -98,7 +96,6 @@
     <string name="notice_restart_confirm">Restart SystemUI now? The status bar and navigation bar will reload briefly.</string>
     <string name="notice_confirm">OK</string>
     <string name="notice_cancel">Cancel</string>
-    <string name="notice_scope_hint">The icon strategies run inside SystemUI: enable the SystemUI scope for this module in LSPosed for them to take effect.</string>
     <string name="notice_restart_sent">SystemUI restart sent</string>
     <string name="notice_restart_failed">Restart failed, root may be unavailable</string>
     <string name="notice_search_hint">Search by name or package</string>

@@ -81,14 +81,12 @@
     <string name="nav_home">首页</string>
     <string name="nav_library">图标库</string>
     <string name="nav_custom">自定义</string>
-    <string name="notice_strategy_title">图标替换策略顺序</string>
     <string name="notice_func_custom">自定义图标</string>
     <string name="notice_func_custom_summary">使用为该应用设置的自定义图标</string>
     <string name="notice_func_lib">图标库</string>
     <string name="notice_func_lib_summary">使用图标库中按包名匹配的图标</string>
     <string name="notice_func_auto">自动修复</string>
     <string name="notice_func_auto_summary">把不符合灰度规范的图标转为单色图标</string>
-    <string name="notice_global_title">全局</string>
     <string name="notice_always_handle">始终处理推送消息</string>
     <string name="notice_always_handle_summary">被标记为不处理的应用，其推送通知（由推送框架代发，如 HMS 推送）仍会被处理</string>
     <string name="notice_skip_grayscale">跳过灰度图标</string>
@@ -97,7 +95,6 @@
     <string name="notice_restart_confirm">现在重启系统界面？状态栏与导航栏会短暂重新加载。</string>
     <string name="notice_confirm">确定</string>
     <string name="notice_cancel">取消</string>
-    <string name="notice_scope_hint">图标策略在 SystemUI 内运行：请在 LSPosed 中为本模块勾选「系统界面」作用域后才会生效。</string>
     <string name="notice_restart_sent">已发送重启系统界面命令</string>
     <string name="notice_restart_failed">重启失败，可能没有 Root 权限</string>
     <string name="notice_search_hint">按名称或包名搜索</string>

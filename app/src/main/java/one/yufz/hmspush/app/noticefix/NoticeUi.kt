@@ -12,6 +12,9 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.AutoFixHigh
+import androidx.compose.material.icons.outlined.Brush
+import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -120,26 +123,41 @@ fun NoticeFuncRow(
     onToggle: (Boolean) -> Unit,
     onMove: (Int) -> Unit,
 ) {
-    val (titleRes, summaryRes) = when (
+    val (titleRes, summaryRes, icon) = when (
         one.yufz.hmspush.common.noticefix.NoticeIconFunc.fromId(status.funcId)
     ) {
         one.yufz.hmspush.common.noticefix.NoticeIconFunc.CUSTOM ->
-            one.yufz.hmspush.R.string.notice_func_custom to
-                one.yufz.hmspush.R.string.notice_func_custom_summary
+            Triple(
+                one.yufz.hmspush.R.string.notice_func_custom,
+                one.yufz.hmspush.R.string.notice_func_custom_summary,
+                Icons.Outlined.Brush,
+            )
         one.yufz.hmspush.common.noticefix.NoticeIconFunc.LIB ->
-            one.yufz.hmspush.R.string.notice_func_lib to
-                one.yufz.hmspush.R.string.notice_func_lib_summary
+            Triple(
+                one.yufz.hmspush.R.string.notice_func_lib,
+                one.yufz.hmspush.R.string.notice_func_lib_summary,
+                Icons.Outlined.PhotoLibrary,
+            )
         one.yufz.hmspush.common.noticefix.NoticeIconFunc.AUTO ->
-            one.yufz.hmspush.R.string.notice_func_auto to
-                one.yufz.hmspush.R.string.notice_func_auto_summary
+            Triple(
+                one.yufz.hmspush.R.string.notice_func_auto,
+                one.yufz.hmspush.R.string.notice_func_auto_summary,
+                Icons.Outlined.AutoFixHigh,
+            )
         null ->
-            one.yufz.hmspush.R.string.notice_func_custom to
-                one.yufz.hmspush.R.string.notice_func_custom_summary
+            Triple(
+                one.yufz.hmspush.R.string.notice_func_custom,
+                one.yufz.hmspush.R.string.notice_func_custom_summary,
+                Icons.Outlined.Brush,
+            )
     }
     ListItem(
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         headlineContent = {
             Text(text = androidx.compose.ui.res.stringResource(id = titleRes))
+        },
+        leadingContent = {
+            Icon(imageVector = icon, contentDescription = null)
         },
         supportingContent = {
             Text(text = androidx.compose.ui.res.stringResource(id = summaryRes))

@@ -11,8 +11,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.outlined.Computer
+import androidx.compose.material.icons.outlined.FilterBAndW
 import androidx.compose.material.icons.outlined.FormatColorFill
 import androidx.compose.material.icons.outlined.FormatListBulleted
+import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.RemoveModerator
 import androidx.compose.material.icons.outlined.VisibilityOff
@@ -46,7 +48,6 @@ import one.yufz.hmspush.app.noticefix.CheckSwitch
 import one.yufz.hmspush.app.noticefix.NoticeFuncRow
 import one.yufz.hmspush.app.noticefix.NoticeGroupCard
 import one.yufz.hmspush.app.noticefix.NoticeGroupDivider
-import one.yufz.hmspush.app.noticefix.NoticeSectionTitle
 import one.yufz.hmspush.app.noticefix.NoticeSwitchRow
 import one.yufz.hmspush.app.noticefix.rememberNoticeFixViewModel
 import one.yufz.hmspush.app.workaround.mavericksViewModel
@@ -150,7 +151,6 @@ fun SettingsScreen(viewModel: SettingsViewModel = mavericksViewModel()) {
                 // same way the tint row already follows it.
                 val noticeViewModel = rememberNoticeFixViewModel()
                 if (preferences.useCustomIcon) {
-                    NoticeSectionTitle(text = stringResource(id = R.string.notice_strategy_title))
                     NoticeGroupCard {
                         val sortedFuncs = noticeViewModel.funcs.sortedBy { it.order }
                         sortedFuncs.forEachIndexed { index, status ->
@@ -164,11 +164,11 @@ fun SettingsScreen(viewModel: SettingsViewModel = mavericksViewModel()) {
                             )
                         }
                     }
-                    NoticeSectionTitle(text = stringResource(id = R.string.notice_global_title))
                     NoticeGroupCard {
                         NoticeSwitchRow(
                             title = stringResource(id = R.string.notice_always_handle),
                             summary = stringResource(id = R.string.notice_always_handle_summary),
+                            icon = Icons.Outlined.NotificationsActive,
                             checked = noticeViewModel.config.alwaysHandleProxyNotice,
                             onCheckedChange = { enabled ->
                                 noticeViewModel.updateConfig { it.copy(alwaysHandleProxyNotice = enabled) }
@@ -178,18 +178,13 @@ fun SettingsScreen(viewModel: SettingsViewModel = mavericksViewModel()) {
                         NoticeSwitchRow(
                             title = stringResource(id = R.string.notice_skip_grayscale),
                             summary = stringResource(id = R.string.notice_skip_grayscale_summary),
+                            icon = Icons.Outlined.FilterBAndW,
                             checked = noticeViewModel.config.skipGrayscale,
                             onCheckedChange = { enabled ->
                                 noticeViewModel.updateConfig { it.copy(skipGrayscale = enabled) }
                             },
                         )
                     }
-                    Text(
-                        text = stringResource(id = R.string.notice_scope_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
-                    )
                 }
 
                 // Hide App Icon stands alone at the bottom,
