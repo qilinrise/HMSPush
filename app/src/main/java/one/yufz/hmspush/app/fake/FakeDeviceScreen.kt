@@ -7,8 +7,10 @@ import android.graphics.drawable.Drawable
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -20,7 +22,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -40,7 +41,6 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -55,7 +55,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import one.yufz.hmspush.R
 import one.yufz.hmspush.app.nav.LocalNavigator
-import one.yufz.hmspush.app.widget.SearchBar
+import one.yufz.hmspush.app.widget.PillSearchField
 import one.yufz.hmspush.app.widget.TipsDialog
 import one.yufz.hmspush.app.workaround.mavericksViewModel
 
@@ -65,7 +65,6 @@ fun FakeDeviceScreen(viewModel: FakeDeviceViewModel = mavericksViewModel()) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
     val state by viewModel.collectAsState()
-    var searching by remember { mutableStateOf(false) }
 
     if (state.error != null) {
         AlertDialog(
@@ -98,38 +97,35 @@ fun FakeDeviceScreen(viewModel: FakeDeviceViewModel = mavericksViewModel()) {
                     }
                 },
                 title = {
-                    if (!searching) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = stringResource(id = R.string.fake_device))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Tips(state.zygiskEnabled) {
-                                viewModel.showZygiskTips()
-                            }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = stringResource(id = R.string.fake_device))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Tips(state.zygiskEnabled) {
+                            viewModel.showZygiskTips()
                         }
-                    }
-                },
-                actions = {
-                    if (!searching) {
-                        IconButton(onClick = { searching = true }) {
-                            Icon(imageVector = Icons.Filled.Search, contentDescription = "Search")
-                        }
-                    } else {
-                        SearchBar(
-                            searchText = state.filterKeywords,
-                            placeholderText = stringResource(id = R.string.menu_search),
-                            onNavigateBack = { searching = false },
-                            onSearchTextChanged = { viewModel.filter(it) }
-                        )
                     }
                 },
             )
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
     ) { paddingValues ->
-        Box {
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize(),
+        ) {
+            // Same permanent pill search as Home / Icons / Custom:
+            // always visible under the top bar, no separate search
+            // mode and no search back arrow.
+            PillSearchField(
+                value = state.filterKeywords,
+                onValueChange = { viewModel.filter(it) },
+                placeholderText = stringResource(id = R.string.menu_search),
+            )
             LazyColumn(
+                modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = paddingValues,
+                contentPadding = PaddingValues(vertical = 8.dp),
             ) {
                 items(state.filteredConfigList) { config ->
                     AppCard(config) {
