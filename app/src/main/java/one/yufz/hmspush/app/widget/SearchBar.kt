@@ -5,12 +5,16 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -34,10 +38,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
@@ -151,8 +157,13 @@ fun preView() {
  * Permanent pill search field shown below a top bar (drop-down style):
  * fully rounded and filled; the box is centered on the page by
  * its symmetric margins, hint and text keep their usual alignment.
+ *
+ * Built on BasicTextField rather than the Material3 TextField: the
+ * Material3 field positions its text with its own internal padding
+ * model, which left the text sitting slightly below center in this
+ * fixed-height pill. Here the icon and the text share one row with
+ * CenterVertically, so both are centered exactly.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PillSearchField(
     value: String,
@@ -160,30 +171,47 @@ fun PillSearchField(
     placeholderText: String,
     modifier: Modifier = Modifier,
 ) {
-    TextField(
+    val colorScheme = MaterialTheme.colorScheme
+    BasicTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .height(52.dp),
-        placeholder = { Text(text = placeholderText) },
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Filled.Search,
-                contentDescription = null
-            )
-        },
-        shape = RoundedCornerShape(percent = 50),
-        colors = TextFieldDefaults.colors(
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent,
-            disabledIndicatorColor = Color.Transparent,
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ),
         singleLine = true,
-        maxLines = 1,
+        textStyle = MaterialTheme.typography.bodyLarge.copy(color = colorScheme.onSurface),
+        cursorBrush = SolidColor(colorScheme.primary),
         keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search),
+        decorationBox = { innerTextField ->
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(percent = 50))
+                    .background(colorScheme.surfaceContainerHigh)
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Search,
+                    contentDescription = null,
+                    tint = colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    if (value.isEmpty()) {
+                        Text(
+                            text = placeholderText,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    innerTextField()
+                }
+            }
+        },
     )
 }

@@ -142,7 +142,59 @@ fun SettingsScreen(viewModel: SettingsViewModel = mavericksViewModel()) {
                             }
                         )
                     }
-                    NoticeGroupDivider()
+                }
+
+                // Ported NoticeFix rules: strategy order and global
+                // toggles. The Custom Notification Icon switch above is
+                // their master switch: off hides this whole area, the
+                // same way the tint row already follows it.
+                val noticeViewModel = rememberNoticeFixViewModel()
+                if (preferences.useCustomIcon) {
+                    NoticeSectionTitle(text = stringResource(id = R.string.notice_strategy_title))
+                    NoticeGroupCard {
+                        val sortedFuncs = noticeViewModel.funcs.sortedBy { it.order }
+                        sortedFuncs.forEachIndexed { index, status ->
+                            if (index > 0) NoticeGroupDivider()
+                            NoticeFuncRow(
+                                status = status,
+                                canMoveUp = index > 0,
+                                canMoveDown = index < sortedFuncs.lastIndex,
+                                onToggle = { noticeViewModel.setFuncActive(status.funcId, it) },
+                                onMove = { noticeViewModel.moveFunc(status.funcId, it) },
+                            )
+                        }
+                    }
+                    NoticeSectionTitle(text = stringResource(id = R.string.notice_global_title))
+                    NoticeGroupCard {
+                        NoticeSwitchRow(
+                            title = stringResource(id = R.string.notice_always_handle),
+                            summary = stringResource(id = R.string.notice_always_handle_summary),
+                            checked = noticeViewModel.config.alwaysHandleProxyNotice,
+                            onCheckedChange = { enabled ->
+                                noticeViewModel.updateConfig { it.copy(alwaysHandleProxyNotice = enabled) }
+                            },
+                        )
+                        NoticeGroupDivider()
+                        NoticeSwitchRow(
+                            title = stringResource(id = R.string.notice_skip_grayscale),
+                            summary = stringResource(id = R.string.notice_skip_grayscale_summary),
+                            checked = noticeViewModel.config.skipGrayscale,
+                            onCheckedChange = { enabled ->
+                                noticeViewModel.updateConfig { it.copy(skipGrayscale = enabled) }
+                            },
+                        )
+                    }
+                    Text(
+                        text = stringResource(id = R.string.notice_scope_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
+                    )
+                }
+
+                // Hide App Icon stands alone at the bottom,
+                // independent of the master switch above.
+                NoticeGroupCard {
                     SwitchPreference(
                         title = stringResource(id = R.string.hide_app_icon),
                         summary = stringResource(id = R.string.hide_app_icon_desc),
@@ -158,49 +210,6 @@ fun SettingsScreen(viewModel: SettingsViewModel = mavericksViewModel()) {
                         },
                     )
                 }
-
-                // Ported NoticeFix rules: strategy order and global toggles.
-                val noticeViewModel = rememberNoticeFixViewModel()
-                NoticeSectionTitle(text = stringResource(id = R.string.notice_strategy_title))
-                NoticeGroupCard {
-                    val sortedFuncs = noticeViewModel.funcs.sortedBy { it.order }
-                    sortedFuncs.forEachIndexed { index, status ->
-                        if (index > 0) NoticeGroupDivider()
-                        NoticeFuncRow(
-                            status = status,
-                            canMoveUp = index > 0,
-                            canMoveDown = index < sortedFuncs.lastIndex,
-                            onToggle = { noticeViewModel.setFuncActive(status.funcId, it) },
-                            onMove = { noticeViewModel.moveFunc(status.funcId, it) },
-                        )
-                    }
-                }
-                NoticeSectionTitle(text = stringResource(id = R.string.notice_global_title))
-                NoticeGroupCard {
-                    NoticeSwitchRow(
-                        title = stringResource(id = R.string.notice_always_handle),
-                        summary = stringResource(id = R.string.notice_always_handle_summary),
-                        checked = noticeViewModel.config.alwaysHandleProxyNotice,
-                        onCheckedChange = { enabled ->
-                            noticeViewModel.updateConfig { it.copy(alwaysHandleProxyNotice = enabled) }
-                        },
-                    )
-                    NoticeGroupDivider()
-                    NoticeSwitchRow(
-                        title = stringResource(id = R.string.notice_skip_grayscale),
-                        summary = stringResource(id = R.string.notice_skip_grayscale_summary),
-                        checked = noticeViewModel.config.skipGrayscale,
-                        onCheckedChange = { enabled ->
-                            noticeViewModel.updateConfig { it.copy(skipGrayscale = enabled) }
-                        },
-                    )
-                }
-                Text(
-                    text = stringResource(id = R.string.notice_scope_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
-                )
             }
 
         }

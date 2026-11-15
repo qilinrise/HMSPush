@@ -187,13 +187,10 @@ fun IconScreen(iconViewModel: IconViewModel = mavericksViewModel()) {
                         IconButton(onClick = { iconViewModel.deleteIcon(it.packageName) }) {
                             Icon(imageVector = Icons.Filled.Close, contentDescription = "Delete")
                         }
-                        // 4 dp trailing inset: the delete icon's right
-                        // edge lands 16 dp from the right edge, the
-                        // same inset the row content starts with on
-                        // the left (8 dp row spacer + 8 dp icon
-                        // padding) and the top bars use for their
-                        // titles.
-                        Spacer(modifier = Modifier.width(4.dp))
+                        // 32 dp trailing inset, as the rows had it
+                        // before: Sun asked for the delete buttons to
+                        // stay put; only the top bar buttons moved in.
+                        Spacer(modifier = Modifier.width(32.dp))
                     }
                 }
             }
