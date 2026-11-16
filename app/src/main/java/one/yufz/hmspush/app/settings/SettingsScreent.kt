@@ -2,6 +2,11 @@ package one.yufz.hmspush.app.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
@@ -80,13 +85,27 @@ fun SettingsScreen(viewModel: SettingsViewModel = mavericksViewModel()) {
             )
         }
 
-        Surface(modifier = Modifier.padding(paddingValues)) {
+        // Top inset only, like the Register page: applying the full
+        // Scaffold padding also lifts the content by the bottom
+        // system inset, leaving a dead strip at the bottom that
+        // clips the last card.
+        Surface(modifier = Modifier.padding(top = paddingValues.calculateTopPadding())) {
             // Grouped rounded cards with M3-style dividers, following the
             // layout style Sun picked (see the NoticeFix screens).
+            val bottomPadding = WindowInsets.safeDrawing
+                .only(WindowInsetsSides.Bottom)
+                .asPaddingValues()
             Column(
                 modifier = Modifier
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    // Bottom spacing matches the Register page's list:
+                    // the system bottom inset plus 12 dp.
+                    .padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 12.dp,
+                        bottom = bottomPadding.calculateBottomPadding() + 12.dp,
+                    ),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 NoticeGroupCard {
