@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -54,7 +56,10 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -216,25 +221,50 @@ private fun AppCard(
     faded: Boolean = false,
     onCheckedChange: (checked: Boolean) -> Unit,
 ) {
-    // Fade for the relocation choreography: out before the
-    // re-sort moves the row, back in once it sits at its
-    // destination.
-    val alpha by animateFloatAsState(
+    // Presence for the relocation choreography: the row fades
+    // out AND collapses to zero height before the re-sort moves
+    // it, then expands and fades back in at its destination.
+    // The collapse matters for the top row: it is the list's
+    // scroll anchor, so removing it outright made the whole
+    // list snap up by one row (the visible "jump"), while a
+    // gradual height change lets every other row follow
+    // smoothly, anchor or not.
+    val presence by animateFloatAsState(
         targetValue = if (faded) 0f else 1f,
         animationSpec = tween(durationMillis = RELOCATION_FADE_MS.toInt()),
-        label = "relocationFade",
+        label = "relocationPresence",
     )
+    var fullHeightPx by remember(config.packageName) { mutableStateOf(0) }
+    val density = LocalDensity.current
     val drawable by loadAppIcon(LocalContext.current, config.packageName)
     val drawablePainter = rememberDrawablePainter(drawable)
-    // Same per-app rounded card as Home's app list.
+    // Same per-app rounded card as Home's app list, wrapped in
+    // a height-controlled box for the collapse above.
+    Box(
+        modifier = modifier
+            .padding(horizontal = 16.dp)
+            .then(
+                if (fullHeightPx > 0) {
+                    Modifier.height(
+                        with(density) { (fullHeightPx * presence).toDp() }
+                    )
+                } else {
+                    Modifier
+                }
+            )
+            .clipToBounds(),
+    ) {
     Card(
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ),
-        modifier = modifier
-            .padding(horizontal = 16.dp)
-            .graphicsLayer { this.alpha = alpha },
+        modifier = Modifier
+            .fillMaxWidth()
+            .onSizeChanged { size ->
+                if (!faded) fullHeightPx = size.height
+            }
+            .graphicsLayer { this.alpha = presence },
     ) {
         ListItem(
             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
@@ -274,6 +304,7 @@ private fun AppCard(
                 )
             }
         )
+    }
     }
 }
 
