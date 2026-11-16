@@ -90,8 +90,6 @@
     <string name="notice_func_lib_summary">Use the library icon matched by package name</string>
     <string name="notice_func_auto">Auto fix</string>
     <string name="notice_func_auto_summary">Convert non-grayscale icons to monochrome</string>
-    <string name="notice_always_handle">Always handle push notifications</string>
-    <string name="notice_always_handle_summary">Push notifications (posted by a push framework, e.g. HMS) are still processed for apps marked do-not-handle</string>
     <string name="notice_skip_grayscale">Skip grayscale icons</string>
     <string name="notice_skip_grayscale_summary">Leave notifications whose icon already follows the grayscale spec completely alone</string>
     <string name="notice_restart_systemui">Restart SystemUI</string>
@@ -118,7 +116,7 @@
     <string name="notice_use_lib">Use library</string>
     <string name="notice_delete_custom">Delete</string>
     <string name="notice_no_handle">Do not handle this app</string>
-    <string name="notice_no_handle_summary">Its notifications keep their original icon (push notifications follow the always-handle setting)</string>
+    <string name="notice_no_handle_summary">Its notifications keep their original icon (push notifications are always processed)</string>
     <string name="notice_custom_icon">Custom icon</string>
     <string name="notice_edit_monochrome">Convert to monochrome</string>
     <string name="notice_edit_invert">Invert colors</string>

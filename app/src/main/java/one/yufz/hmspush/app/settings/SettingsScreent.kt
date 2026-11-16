@@ -14,7 +14,6 @@ import androidx.compose.material.icons.outlined.Computer
 import androidx.compose.material.icons.outlined.FilterBAndW
 import androidx.compose.material.icons.outlined.FormatColorFill
 import androidx.compose.material.icons.outlined.FormatListBulleted
-import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.RemoveModerator
 import androidx.compose.material.icons.outlined.VisibilityOff
@@ -122,6 +121,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = mavericksViewModel()) {
                         }
                     )
                 }
+                val noticeViewModel = rememberNoticeFixViewModel()
                 NoticeGroupCard {
                     SwitchPreference(
                         title = stringResource(id = R.string.notification_icon),
@@ -142,14 +142,26 @@ fun SettingsScreen(viewModel: SettingsViewModel = mavericksViewModel()) {
                                 viewModel.updatePreference { tintIconColor = it }
                             }
                         )
+                        NoticeGroupDivider()
+                        // Skip-grayscale lives in the same card as the
+                        // Custom Notification Icon master switch.
+                        NoticeSwitchRow(
+                            title = stringResource(id = R.string.notice_skip_grayscale),
+                            summary = stringResource(id = R.string.notice_skip_grayscale_summary),
+                            icon = Icons.Outlined.FilterBAndW,
+                            checked = noticeViewModel.config.skipGrayscale,
+                            onCheckedChange = { enabled ->
+                                noticeViewModel.updateConfig { it.copy(skipGrayscale = enabled) }
+                            },
+                        )
                     }
                 }
 
-                // Ported NoticeFix rules: strategy order and global
-                // toggles. The Custom Notification Icon switch above is
-                // their master switch: off hides this whole area, the
-                // same way the tint row already follows it.
-                val noticeViewModel = rememberNoticeFixViewModel()
+                // Ported NoticeFix rules: the strategy order. The
+                // Custom Notification Icon switch above is its master
+                // switch: off hides this whole area, the same way the
+                // tint and skip-grayscale rows already follow it inside
+                // the master switch's own card.
                 if (preferences.useCustomIcon) {
                     NoticeGroupCard {
                         val sortedFuncs = noticeViewModel.funcs.sortedBy { it.order }
@@ -163,27 +175,6 @@ fun SettingsScreen(viewModel: SettingsViewModel = mavericksViewModel()) {
                                 onMove = { noticeViewModel.moveFunc(status.funcId, it) },
                             )
                         }
-                    }
-                    NoticeGroupCard {
-                        NoticeSwitchRow(
-                            title = stringResource(id = R.string.notice_always_handle),
-                            summary = stringResource(id = R.string.notice_always_handle_summary),
-                            icon = Icons.Outlined.NotificationsActive,
-                            checked = noticeViewModel.config.alwaysHandleProxyNotice,
-                            onCheckedChange = { enabled ->
-                                noticeViewModel.updateConfig { it.copy(alwaysHandleProxyNotice = enabled) }
-                            },
-                        )
-                        NoticeGroupDivider()
-                        NoticeSwitchRow(
-                            title = stringResource(id = R.string.notice_skip_grayscale),
-                            summary = stringResource(id = R.string.notice_skip_grayscale_summary),
-                            icon = Icons.Outlined.FilterBAndW,
-                            checked = noticeViewModel.config.skipGrayscale,
-                            onCheckedChange = { enabled ->
-                                noticeViewModel.updateConfig { it.copy(skipGrayscale = enabled) }
-                            },
-                        )
                     }
                 }
 

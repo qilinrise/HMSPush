@@ -89,8 +89,6 @@
     <string name="notice_func_lib_summary">使用图标库中按包名匹配的图标</string>
     <string name="notice_func_auto">自动修复</string>
     <string name="notice_func_auto_summary">把不符合灰度规范的图标转为单色图标</string>
-    <string name="notice_always_handle">始终处理推送消息</string>
-    <string name="notice_always_handle_summary">被标记为不处理的应用，其推送通知（由推送框架代发，如 HMS 推送）仍会被处理</string>
     <string name="notice_skip_grayscale">跳过灰度图标</string>
     <string name="notice_skip_grayscale_summary">图标已符合灰度规范的通知完全不做处理</string>
     <string name="notice_restart_systemui">重启系统界面</string>
@@ -117,7 +115,7 @@
     <string name="notice_use_lib">用库图标</string>
     <string name="notice_delete_custom">删除</string>
     <string name="notice_no_handle">不处理此应用</string>
-    <string name="notice_no_handle_summary">其通知保留原图标（推送通知遵循「始终处理推送消息」设置）</string>
+    <string name="notice_no_handle_summary">其通知保留原图标（推送通知始终处理）</string>
     <string name="notice_custom_icon">自定义图标</string>
     <string name="notice_edit_monochrome">灰度化</string>
     <string name="notice_edit_invert">反色</string>

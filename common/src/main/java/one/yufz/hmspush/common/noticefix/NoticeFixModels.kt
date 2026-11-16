@@ -48,7 +48,7 @@ data class NoticeCustomIcon(
     /** Base64 encoded PNG; null when only flags are set for this app. */
     val iconBase64: String? = null,
     val iconColor: String? = null,
-    /** Whitelist: do not process this app (except proxy notices when always-handle is on). */
+    /** Whitelist: do not process this app's own notices (its push/proxy notices are always processed). */
     val noHandle: Boolean = false,
 ) {
     fun decodeBitmap(): Bitmap? = decodeBase64Bitmap(iconBase64)
@@ -93,19 +93,15 @@ data class NoticeCustomIcon(
 
 /** Global switches of the ported feature. Defaults mirror NoticeFix. */
 data class NoticeFixConfig(
-    /** Process push (proxy) notifications even for do-not-handle apps. */
-    val alwaysHandleProxyNotice: Boolean = true,
     /** Leave already-grayscale icons completely alone. */
     val skipGrayscale: Boolean = false,
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
-        put("alwaysHandleProxyNotice", alwaysHandleProxyNotice)
         put("skipGrayscale", skipGrayscale)
     }
 
     companion object {
         fun fromJson(obj: JSONObject): NoticeFixConfig = NoticeFixConfig(
-            alwaysHandleProxyNotice = obj.optBoolean("alwaysHandleProxyNotice", true),
             skipGrayscale = obj.optBoolean("skipGrayscale", false),
         )
 

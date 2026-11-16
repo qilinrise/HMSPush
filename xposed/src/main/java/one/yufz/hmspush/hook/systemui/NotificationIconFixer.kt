@@ -23,9 +23,9 @@ import kotlin.math.abs
  * scratch, no code or assets copied):
  *
  * - Apps flagged "do not handle" are skipped, except for proxy (push)
- *   notifications when the always-handle-proxy preference is on: those
- *   are posted by a push framework (opPkg differs from the target
- *   package), which includes notifications delivered through HMS push.
+ *   notifications, which are always processed: those are posted by a
+ *   push framework (opPkg differs from the target package), which
+ *   includes notifications delivered through HMS push.
  * - When "skip grayscale" is on, only the automatic conversion is
  *   skipped for notifications whose icon already follows the grayscale
  *   specification. Explicit per-app assignments (custom icon, icon
@@ -136,16 +136,13 @@ object NotificationIconFixer {
                 "skipGrayscale=${config.skipGrayscale} funcs=${snapshot.funcs}",
         )
 
-        // Do-not-handle apps are skipped, with the proxy exception that
-        // defines the always-handle-proxy preference.
+        // Do-not-handle apps are skipped — except their push (proxy)
+        // notifications, which are always processed: the exemption
+        // covers only notifications the app posts itself.
         if (custom?.noHandle == true) {
             val isProxy = sbn.opPkg != null && sbn.opPkg != packageName
             if (!isProxy) {
                 XLog.d(TAG, "skip $packageName: flagged do-not-handle, not a proxy notice")
-                return
-            }
-            if (!config.alwaysHandleProxyNotice) {
-                XLog.d(TAG, "skip $packageName: do-not-handle proxy notice, always-handle is off")
                 return
             }
         }
