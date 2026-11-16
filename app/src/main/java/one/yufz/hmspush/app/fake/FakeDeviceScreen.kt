@@ -53,6 +53,9 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.semantics.Role
@@ -296,15 +299,61 @@ private fun SpoofSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
                         style = Stroke(width = 2.dp.toPx()),
                     )
                 }
+                // The thumb is full-size in both states and carries
+                // an icon, exactly like the CheckSwitch used on the
+                // Settings page: a check when on, a cross when off,
+                // cross-faded by the same fraction.
+                val thumbCenter = Offset((16f + 20f * f).dp.toPx(), size.height / 2f)
                 drawCircle(
                     color = lerp(
                         switchColors.uncheckedThumbColor,
                         switchColors.checkedThumbColor,
                         f,
                     ),
-                    radius = (8f + 4f * f).dp.toPx(),
-                    center = Offset((16f + 20f * f).dp.toPx(), size.height / 2f),
+                    radius = 12.dp.toPx(),
+                    center = thumbCenter,
                 )
+                if (f < 1f) {
+                    val crossColor = switchColors.uncheckedIconColor.copy(
+                        alpha = switchColors.uncheckedIconColor.alpha * (1f - f),
+                    )
+                    val arm = 3.7.dp.toPx()
+                    val stroke = 1.6.dp.toPx()
+                    drawLine(
+                        color = crossColor,
+                        start = Offset(thumbCenter.x - arm, thumbCenter.y - arm),
+                        end = Offset(thumbCenter.x + arm, thumbCenter.y + arm),
+                        strokeWidth = stroke,
+                        cap = StrokeCap.Round,
+                    )
+                    drawLine(
+                        color = crossColor,
+                        start = Offset(thumbCenter.x + arm, thumbCenter.y - arm),
+                        end = Offset(thumbCenter.x - arm, thumbCenter.y + arm),
+                        strokeWidth = stroke,
+                        cap = StrokeCap.Round,
+                    )
+                }
+                if (f > 0f) {
+                    val checkColor = switchColors.checkedIconColor.copy(
+                        alpha = switchColors.checkedIconColor.alpha * f,
+                    )
+                    val s = 5.dp.toPx()
+                    val checkPath = Path().apply {
+                        moveTo(thumbCenter.x - 0.85f * s, thumbCenter.y + 0.05f * s)
+                        lineTo(thumbCenter.x - 0.3f * s, thumbCenter.y + 0.6f * s)
+                        lineTo(thumbCenter.x + 0.9f * s, thumbCenter.y - 0.55f * s)
+                    }
+                    drawPath(
+                        path = checkPath,
+                        color = checkColor,
+                        style = Stroke(
+                            width = 1.6.dp.toPx(),
+                            cap = StrokeCap.Round,
+                            join = StrokeJoin.Round,
+                        ),
+                    )
+                }
             },
     )
 }
