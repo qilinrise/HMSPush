@@ -6,6 +6,8 @@ import android.content.Context
 import android.graphics.drawable.Drawable
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -45,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -186,13 +189,25 @@ private fun AppCard(config: AppConfig, onCheckedChange: (checked: Boolean) -> Un
                 var checked by remember(config.packageName) {
                     mutableStateOf(config.enabled)
                 }
-                Switch(
-                    checked = checked,
-                    onCheckedChange = {
-                        checked = it
-                        onCheckedChange(it)
-                    }
-                )
+                // The stock Switch is itself draggable: a scroll
+                // gesture that starts on a switch drags its thumb
+                // sideways before the list's scroll takes over, and
+                // the thumb then animates back — the "jumping
+                // switch" seen while scrolling. Render the Switch
+                // display-only and take the tap on this wrapper
+                // instead: taps toggle, drags just scroll the list.
+                Box(
+                    modifier = Modifier.toggleable(
+                        value = checked,
+                        role = Role.Switch,
+                        onValueChange = {
+                            checked = it
+                            onCheckedChange(it)
+                        },
+                    ),
+                ) {
+                    Switch(checked = checked, onCheckedChange = null)
+                }
             }
         )
     }
