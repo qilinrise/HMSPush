@@ -98,14 +98,44 @@ class FakeDeviceViewModel(initialState: FakeDeviceState) : MavericksViewModel<Fa
     }
 
     fun update(appConfig: AppConfig) {
+        // Optimistic reorder: move the row into its new group in
+        // the local state right away, for both directions. Turning
+        // a row off sank it via the config-flow round trip, but a
+        // row turned back on stayed in the bottom group until a
+        // restart reloaded everything — the returning emission
+        // does not reliably re-drive the sort. The flow merge
+        // still runs afterwards and confirms the same order.
+        setState {
+            copy(
+                configList = configList
+                    .map { if (it.packageName == appConfig.packageName) appConfig else it }
+                    .sortedByDescending { it.enabled }
+            )
+        }
         viewModelScope.launch {
             val result = if (appConfig.enabled) {
                 fakeDeviceConfig.update(appConfig.packageName, emptyList())
             } else {
                 fakeDeviceConfig.deleteConfig(appConfig.packageName)
             }
-            result.onFailure {
-                setState { copy(error = it) }
+            result.onFailure { cause ->
+                // The write did not land: put the row back into
+                // its previous group instead of leaving the list
+                // showing a state the config file does not have.
+                setState {
+                    copy(
+                        configList = configList
+                            .map {
+                                if (it.packageName == appConfig.packageName) {
+                                    it.copy(enabled = !appConfig.enabled)
+                                } else {
+                                    it
+                                }
+                            }
+                            .sortedByDescending { it.enabled },
+                        error = cause,
+                    )
+                }
             }
         }
     }
