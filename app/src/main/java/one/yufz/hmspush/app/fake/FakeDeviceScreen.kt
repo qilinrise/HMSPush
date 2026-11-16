@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -44,6 +45,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -66,6 +68,7 @@ import com.airbnb.mvrx.compose.collectAsState
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.launch
 import one.yufz.hmspush.R
 import one.yufz.hmspush.app.widget.PillSearchField
 import one.yufz.hmspush.app.widget.TipsDialog
@@ -74,6 +77,32 @@ import one.yufz.hmspush.app.workaround.mavericksViewModel
 @Composable
 fun FakeDeviceScreen(viewModel: FakeDeviceViewModel = mavericksViewModel()) {
     val state by viewModel.collectAsState()
+
+    val listState = rememberLazyListState()
+    val toggleScope = rememberCoroutineScope()
+
+    // Toggling the first visible row used to drag the whole
+    // viewport to the row's new group: LazyColumn anchors the
+    // scroll position on the first visible item's key and
+    // follows it when it moves. Re-anchor on the next row at the
+    // exact same visual position before applying the toggle, so
+    // the anchor itself never moves and the view stays put.
+    fun onToggle(config: AppConfig, enabled: Boolean) {
+        toggleScope.launch {
+            val visible = listState.layoutInfo.visibleItemsInfo
+            val first = visible.firstOrNull()
+            if (first != null && first.key == config.packageName) {
+                val next = visible.getOrNull(1)
+                if (next != null) {
+                    listState.scrollToItem(
+                        next.index,
+                        listState.firstVisibleItemScrollOffset - first.size,
+                    )
+                }
+            }
+            viewModel.update(config.copy(enabled = enabled))
+        }
+    }
 
     if (state.error != null) {
         AlertDialog(
@@ -127,6 +156,7 @@ fun FakeDeviceScreen(viewModel: FakeDeviceViewModel = mavericksViewModel()) {
                 placeholderText = stringResource(id = R.string.menu_search),
             )
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(vertical = 12.dp),
@@ -137,7 +167,7 @@ fun FakeDeviceScreen(viewModel: FakeDeviceViewModel = mavericksViewModel()) {
                     contentType = { "appCard" },
                 ) { config ->
                     AppCard(config) {
-                        viewModel.update(config.copy(enabled = it))
+                        onToggle(config, it)
                     }
                 }
             }
