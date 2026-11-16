@@ -66,8 +66,17 @@ object NotificationIconFixer {
      */
     private val coloredDisplayPackages: MutableSet<String> = ConcurrentHashMap.newKeySet()
 
+    /**
+     * Last seen state of the Custom Notification Icon master switch,
+     * refreshed from every snapshot [fix] loads. The display hooks
+     * consult it through [isColoredDisplay], so turning the master
+     * switch off stops the coloured-display treatment as well.
+     */
+    @Volatile
+    private var masterEnabled = true
+
     fun isColoredDisplay(packageName: String?): Boolean =
-        packageName != null && coloredDisplayPackages.contains(packageName)
+        masterEnabled && packageName != null && coloredDisplayPackages.contains(packageName)
 
     private fun registerDisplayMode(packageName: String, bitmap: Bitmap) {
         val colored = needsColoredDisplay(bitmap)
@@ -125,6 +134,11 @@ object NotificationIconFixer {
         val snapshot = NoticeFixData.load(context)
         if (snapshot == null) {
             XLog.d(TAG, "no NoticeFix data (provider unavailable?) for $packageName, leaving icon untouched")
+            return
+        }
+        masterEnabled = snapshot.masterEnabled
+        if (!snapshot.masterEnabled) {
+            XLog.d(TAG, "skip $packageName: custom notification icon master switch is off")
             return
         }
         val config = snapshot.config

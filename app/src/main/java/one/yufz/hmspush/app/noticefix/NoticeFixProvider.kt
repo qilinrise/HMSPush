@@ -5,6 +5,7 @@ import android.content.ContentValues
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
+import one.yufz.hmspush.common.HMSPUSH_PREF_NAME
 import one.yufz.hmspush.common.noticefix.NoticeCustomIcon
 import one.yufz.hmspush.common.noticefix.NoticeFixContract
 import one.yufz.hmspush.common.noticefix.NoticeFuncStatus
@@ -30,14 +31,22 @@ class NoticeFixProvider : ContentProvider() {
             NoticeFixContract.COL_CONFIG,
             NoticeFixContract.COL_FUNCS,
             NoticeFixContract.COL_CUSTOMS,
+            NoticeFixContract.COL_MASTER,
         )
         val cursor = MatrixCursor(columns)
         val context = context ?: return cursor
+        // The Custom Notification Icon switch is the master switch of
+        // BOTH icon pipelines: the HMS-side handler already honours it,
+        // and the SystemUI pipeline reads it from this column.
+        val masterEnabled = context
+            .getSharedPreferences(HMSPUSH_PREF_NAME, android.content.Context.MODE_PRIVATE)
+            .getBoolean("useCustomIcon", false)
         cursor.addRow(
             arrayOf(
                 NoticeFixStore.loadConfig(context).toJson().toString(),
                 NoticeFuncStatus.toJsonArray(NoticeFixStore.loadFuncs(context)),
                 NoticeCustomIcon.toJsonArray(NoticeFixStore.loadCustoms(context).values),
+                if (masterEnabled) "1" else "0",
             ),
         )
         return cursor

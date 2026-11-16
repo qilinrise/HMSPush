@@ -21,6 +21,8 @@ object NoticeFixContract {
     const val COL_CONFIG = "config"
     const val COL_FUNCS = "funcs"
     const val COL_CUSTOMS = "customs"
+    /** "1" when the Custom Notification Icon master switch is on. */
+    const val COL_MASTER = "master"
 
     const val PREF_GLOBAL_CONFIG = "noticefix_global_config"
     const val PREF_CUSTOM_ICONS = "noticefix_custom_icons"

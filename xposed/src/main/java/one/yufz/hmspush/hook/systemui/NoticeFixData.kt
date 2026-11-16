@@ -11,6 +11,8 @@ import one.yufz.hmspush.hook.XLog
 
 /** Immutable snapshot of the NoticeFix data the SystemUI pipeline needs. */
 internal data class NoticeFixSnapshot(
+    /** The Custom Notification Icon master switch; off stops the whole pipeline. */
+    val masterEnabled: Boolean,
     val config: NoticeFixConfig,
     /** Strategies in the order they should be tried. */
     val funcs: List<NoticeFuncStatus>,
@@ -53,7 +55,10 @@ internal object NoticeFixData {
                     XLog.d(TAG, "provider returned an empty cursor")
                     null
                 } else {
+                    val masterIndex = cursor.getColumnIndex(NoticeFixContract.COL_MASTER)
                     NoticeFixSnapshot(
+                        masterEnabled = masterIndex < 0 ||
+                            cursor.getString(masterIndex) == "1",
                         config = NoticeFixConfig.parse(
                             cursor.getString(cursor.getColumnIndexOrThrow(NoticeFixContract.COL_CONFIG)),
                         ),
