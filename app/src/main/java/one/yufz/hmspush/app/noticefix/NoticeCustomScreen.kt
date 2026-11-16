@@ -12,6 +12,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -146,7 +151,11 @@ fun NoticeCustomScreen(
     ) { padding ->
         Column(
             modifier = Modifier
-                .padding(padding)
+                // Top inset only, like the Register page: applying
+                // the full Scaffold padding also lifts the content
+                // by the bottom system inset, leaving a dead strip
+                // under the list that clips the last cards.
+                .padding(top = padding.calculateTopPadding())
                 .fillMaxSize(),
         ) {
             // Same pill search component and hint as Home and the
@@ -202,9 +211,17 @@ fun NoticeCustomScreen(
                     )
                 }
             } else {
+                val bottomPadding = WindowInsets.safeDrawing
+                    .only(WindowInsetsSides.Bottom)
+                    .asPaddingValues()
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 8.dp),
+                    // Bottom spacing matches the Register page's
+                    // list: the system bottom inset plus 12 dp.
+                    contentPadding = PaddingValues(
+                        top = 8.dp,
+                        bottom = bottomPadding.calculateBottomPadding() + 12.dp,
+                    ),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(filteredApps, key = { it.packageName }) { app ->

@@ -14,6 +14,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
@@ -116,7 +121,11 @@ fun FakeDeviceScreen(viewModel: FakeDeviceViewModel = mavericksViewModel()) {
     ) { paddingValues ->
         Column(
             modifier = Modifier
-                .padding(paddingValues)
+                // Top inset only, like the Register page: applying
+                // the full Scaffold padding also lifts the content
+                // by the bottom system inset, leaving a dead strip
+                // under the list that clips the last cards.
+                .padding(top = paddingValues.calculateTopPadding())
                 .fillMaxSize(),
         ) {
             // Same permanent pill search as Home / Icons / Custom:
@@ -127,10 +136,19 @@ fun FakeDeviceScreen(viewModel: FakeDeviceViewModel = mavericksViewModel()) {
                 onValueChange = { viewModel.filter(it) },
                 placeholderText = stringResource(id = R.string.menu_search),
             )
+            val bottomPadding = WindowInsets.safeDrawing
+                .only(WindowInsetsSides.Bottom)
+                .asPaddingValues()
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(vertical = 12.dp),
+                // Same bottom spacing as the Register page's list:
+                // the system bottom inset plus 12 dp, so the last
+                // card rests fully visible above the nav bar.
+                contentPadding = PaddingValues(
+                    top = 12.dp,
+                    bottom = bottomPadding.calculateBottomPadding() + 12.dp,
+                ),
             ) {
                 // No item keys on purpose: with keys, LazyColumn
                 // anchors the scroll position on the first visible
