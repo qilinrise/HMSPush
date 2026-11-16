@@ -58,9 +58,10 @@ object NotificationIconFixer {
      * picked app icon) degenerates into a solid blob under that
      * treatment, so replacing mSmallIcon alone is invisible. This is
      * the display half of NoticeFix's "show coloured icons" feature;
-     * [HookSystemUI] consults this set to skip the tinting for exactly
-     * the packages listed here. Single-colour silhouettes on a
-     * transparent background are NOT listed: the native tinted
+     * [HookSystemUI] consults this set to enable coloured display for
+     * exactly the packages listed here (header tint skipped, status-bar
+     * icon views tagged `icon_is_pre_L`). Single-colour silhouettes on
+     * a transparent background are NOT listed: the native tinted
      * rendering is what they are designed for.
      */
     private val coloredDisplayPackages: MutableSet<String> = ConcurrentHashMap.newKeySet()

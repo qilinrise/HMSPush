@@ -43,8 +43,17 @@ import java.lang.reflect.Method
  *   background and the padding around the icon (and the `left_icon`
  *   in expanded templates), which otherwise shrink a full-bleed
  *   replacement bitmap to the circle's inner area.
- * - `StatusBarIconView.updateIconColor`: skipped for the package, so
- *   the status-bar icon keeps its original colours too.
+ * - `IconManager.setIcon`: the icon views it creates (status bar,
+ *   shelf and AOD share this funnel) are tagged `icon_is_pre_L` for
+ *   the package, which is SystemUI's own switch for "coloured app
+ *   icon, do not tint" — the mechanism NoticeFix uses. The status-bar
+ *   binder and the shelf then leave multicolour icons untinted, but
+ *   still tint a grayscale icon of the same package with the colour
+ *   contrasted against the background behind it, so replaced icons
+ *   keep adapting to light and dark backgrounds like stock ones.
+ *   (An earlier version skipped `StatusBarIconView.updateIconColor`
+ *   outright for these packages; that also blocked the background
+ *   adaptation for their grayscale icons, so the tag replaces it.)
  *
  * All lookups are defensive: on ROMs where the expected classes or
  * methods are absent (or renamed), that hook is skipped with a log
@@ -72,7 +81,7 @@ class HookSystemUI {
 
     private fun hookColoredDisplay(classLoader: ClassLoader) {
         hookSmallIconColor()
-        hookStatusBarIconColor(classLoader)
+        hookIconManagerTag(classLoader)
     }
 
     private fun hookSmallIconColor() {
@@ -150,34 +159,84 @@ class HookSystemUI {
         }
     }
 
-    private fun hookStatusBarIconColor(classLoader: ClassLoader) {
+    /**
+     * NoticeFix's status-bar coloured display: after IconManager has
+     * created an icon view (status bar, shelf and AOD icons all pass
+     * through this one method), overwrite the `icon_is_pre_L` tag the
+     * framework just set from the app's targetSdk. SystemUI's colour
+     * binding reads the tag on every bind: a pre-L icon whose drawable
+     * is not grayscale gets NO_COLOR (original colours kept), while a
+     * grayscale drawable is still tinted with the background-contrasted
+     * colour — the black/white adaptation stock icons have.
+     */
+    private fun hookIconManagerTag(classLoader: ClassLoader) {
         try {
-            val iconView = XposedHelpers.findClassIfExists(
+            val iconManager = XposedHelpers.findClassIfExists(
+                "com.android.systemui.statusbar.notification.icon.IconManager",
+                classLoader,
+            )
+            val entryClass = XposedHelpers.findClassIfExists(ENTRY_CLASS, classLoader)
+            val statusBarIcon = XposedHelpers.findClassIfExists(
+                "com.android.systemui.statusbar.StatusBarIcon",
+                classLoader,
+            )
+            val iconViewClass = XposedHelpers.findClassIfExists(
                 "com.android.systemui.statusbar.StatusBarIconView",
                 classLoader,
             )
-            if (iconView == null) {
-                XLog.d(TAG, "StatusBarIconView not found, status bar coloured display unavailable on this ROM")
+            if (iconManager == null || entryClass == null ||
+                statusBarIcon == null || iconViewClass == null
+            ) {
+                XLog.d(TAG, "IconManager classes not found, status bar coloured display unavailable on this ROM")
                 return
             }
-            iconView.hookAllMethods("updateIconColor") {
-                doBefore {
-                    try {
-                        val sbn = runCatching {
-                            XposedHelpers.getObjectField(thisObject, "mNotification")
-                        }.getOrNull() as? StatusBarNotification
-                        if (NotificationIconFixer.isColoredDisplay(sbn?.packageName)) {
-                            result = null
+            val methods = XposedHelpers.findMethodsByExactParameters(
+                iconManager, Void.TYPE, entryClass, statusBarIcon, iconViewClass,
+            ).filter { it.name == "setIcon" }
+            if (methods.isEmpty()) {
+                XLog.d(TAG, "IconManager.setIcon not found, status bar coloured display unavailable on this ROM")
+                return
+            }
+            methods.forEach { method ->
+                method.hook {
+                    doAfter {
+                        try {
+                            val entry = args.getOrNull(0) ?: return@doAfter
+                            val iconView = args.getOrNull(2) as? android.view.View
+                                ?: return@doAfter
+                            val sbn = runCatching {
+                                XposedHelpers.getObjectField(entry, "sbn")
+                            }.getOrNull() as? StatusBarNotification
+                            if (NotificationIconFixer.isColoredDisplay(sbn?.packageName)) {
+                                val tagId = preLTagId(iconView)
+                                if (tagId != 0) {
+                                    iconView.setTag(tagId, true)
+                                    XLog.d(TAG, "colored display: tagged icon_is_pre_L for ${sbn?.packageName}")
+                                }
+                            }
+                        } catch (t: Throwable) {
+                            XLog.e(TAG, "IconManager.setIcon handling failed", t)
                         }
-                    } catch (t: Throwable) {
-                        XLog.e(TAG, "updateIconColor handling failed", t)
                     }
                 }
             }
-            XLog.d(TAG, "hooked StatusBarIconView.updateIconColor")
+            XLog.d(TAG, "hooked IconManager.setIcon")
         } catch (t: Throwable) {
-            XLog.e(TAG, "hooking StatusBarIconView failed", t)
+            XLog.e(TAG, "hooking IconManager.setIcon failed", t)
         }
+    }
+
+    @Volatile
+    private var cachedPreLTagId: Int? = null
+
+    /** SystemUI's `icon_is_pre_L` view-tag id, resolved once. */
+    private fun preLTagId(view: android.view.View): Int {
+        cachedPreLTagId?.let { return it }
+        val id = runCatching {
+            view.resources.getIdentifier("icon_is_pre_L", "id", "com.android.systemui")
+        }.getOrDefault(0)
+        cachedPreLTagId = id
+        return id
     }
 
     @Volatile
