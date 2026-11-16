@@ -27,6 +27,9 @@ data class FakeDeviceState(
             configList.filter { it.name.contains(filterKeywords, true) || it.packageName.contains(filterKeywords, true) }
 }
 
+private val APP_CONFIG_ORDER: Comparator<AppConfig> =
+    compareByDescending<AppConfig> { it.enabled }.thenBy { it.packageName }
+
 class FakeDeviceViewModel(initialState: FakeDeviceState) : MavericksViewModel<FakeDeviceState>(initialState) {
     companion object {
         private const val TAG = "FakeDeviceViewModel"
@@ -50,15 +53,16 @@ class FakeDeviceViewModel(initialState: FakeDeviceState) : MavericksViewModel<Fa
             .flowOn(Dispatchers.IO)
             .onEach { list ->
                 setState {
-                    // Enabled apps first, disabled ones sink to the
-                    // bottom — on every update, not just the first
-                    // load, so toggling a switch moves its row into
-                    // the other group right away instead of only
-                    // after a restart. The sort is stable: within a
-                    // group, rows keep their previous relative order.
+                    // One total order, applied on every update:
+                    // enabled apps first, package name alphabetical
+                    // within each group — exactly the order a fresh
+                    // load produces, so toggling a switch moves its
+                    // row to its alphabetical place in the other
+                    // group right away instead of appending it at
+                    // the group's end until a restart.
                     copy(
                         configList = mergeConfigList(configList, list)
-                            .sortedByDescending { it.enabled }
+                            .sortedWith(APP_CONFIG_ORDER)
                     )
                 }
             }
@@ -99,17 +103,14 @@ class FakeDeviceViewModel(initialState: FakeDeviceState) : MavericksViewModel<Fa
 
     fun update(appConfig: AppConfig) {
         // Optimistic reorder: move the row into its new group in
-        // the local state right away, for both directions. Turning
-        // a row off sank it via the config-flow round trip, but a
-        // row turned back on stayed in the bottom group until a
-        // restart reloaded everything — the returning emission
-        // does not reliably re-drive the sort. The flow merge
-        // still runs afterwards and confirms the same order.
+        // the local state right away, for both directions, using
+        // the same total order as the flow merge (which confirms
+        // the identical order when its emission arrives).
         setState {
             copy(
                 configList = configList
                     .map { if (it.packageName == appConfig.packageName) appConfig else it }
-                    .sortedByDescending { it.enabled }
+                    .sortedWith(APP_CONFIG_ORDER)
             )
         }
         viewModelScope.launch {
@@ -132,7 +133,7 @@ class FakeDeviceViewModel(initialState: FakeDeviceState) : MavericksViewModel<Fa
                                     it
                                 }
                             }
-                            .sortedByDescending { it.enabled },
+                            .sortedWith(APP_CONFIG_ORDER),
                         error = cause,
                     )
                 }
