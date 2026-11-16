@@ -15,8 +15,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -46,7 +44,6 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -56,10 +53,6 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -72,8 +65,6 @@ import androidx.compose.ui.unit.dp
 import com.airbnb.mvrx.compose.collectAsState
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import one.yufz.hmspush.R
 import one.yufz.hmspush.app.widget.PillSearchField
@@ -83,36 +74,6 @@ import one.yufz.hmspush.app.workaround.mavericksViewModel
 @Composable
 fun FakeDeviceScreen(viewModel: FakeDeviceViewModel = mavericksViewModel()) {
     val state by viewModel.collectAsState()
-
-    // Relocation choreography: a toggled row does not fly to its
-    // new group — with animateItem's placement animation it slid
-    // the whole way, showing through the gaps between the other
-    // cards. Instead the row fades out where it is, the list
-    // re-sorts underneath (neighbours glide to close/open the
-    // gap), and the row fades back in at its destination.
-    val relocationScope = rememberCoroutineScope()
-    var relocatingPackages by remember { mutableStateOf<Set<String>>(emptySet()) }
-    val relocationJobs = remember { mutableMapOf<String, Job>() }
-
-    fun onToggle(config: AppConfig, enabled: Boolean) {
-        val pkg = config.packageName
-        val pending = relocationJobs.remove(pkg)
-        if (pending != null) {
-            // Toggled back before the move fired: cancel it and
-            // fade the row back in where it is; nothing was
-            // written, and the switch has flipped back too.
-            pending.cancel()
-            relocatingPackages = relocatingPackages - pkg
-            return
-        }
-        relocatingPackages = relocatingPackages + pkg
-        relocationJobs[pkg] = relocationScope.launch {
-            delay(RELOCATION_FADE_MS)
-            viewModel.update(config.copy(enabled = enabled))
-            relocatingPackages = relocatingPackages - pkg
-            relocationJobs.remove(pkg)
-        }
-    }
 
     if (state.error != null) {
         AlertDialog(
@@ -175,18 +136,8 @@ fun FakeDeviceScreen(viewModel: FakeDeviceViewModel = mavericksViewModel()) {
                     key = { it.packageName },
                     contentType = { "appCard" },
                 ) { config ->
-                    val relocating = config.packageName in relocatingPackages
-                    AppCard(
-                        config,
-                        // While relocating, the row loses its
-                        // placement animation so the re-sort puts
-                        // it at its destination instantly (invisible
-                        // mid-fade); neighbours keep theirs and
-                        // glide to close/open the gap.
-                        modifier = if (relocating) Modifier else Modifier.animateItem(),
-                        faded = relocating,
-                    ) { enabled ->
-                        onToggle(config, enabled)
+                    AppCard(config) {
+                        viewModel.update(config.copy(enabled = it))
                     }
                 }
             }
@@ -212,59 +163,17 @@ private fun Tips(zygiskEnabled: Boolean, requestShowTips: () -> Unit) {
     }
 }
 
-private const val RELOCATION_FADE_MS = 160L
-
 @Composable
-private fun AppCard(
-    config: AppConfig,
-    modifier: Modifier = Modifier,
-    faded: Boolean = false,
-    onCheckedChange: (checked: Boolean) -> Unit,
-) {
-    // Presence for the relocation choreography: the row fades
-    // out AND collapses to zero height before the re-sort moves
-    // it, then expands and fades back in at its destination.
-    // The collapse matters for the top row: it is the list's
-    // scroll anchor, so removing it outright made the whole
-    // list snap up by one row (the visible "jump"), while a
-    // gradual height change lets every other row follow
-    // smoothly, anchor or not.
-    val presence by animateFloatAsState(
-        targetValue = if (faded) 0f else 1f,
-        animationSpec = tween(durationMillis = RELOCATION_FADE_MS.toInt()),
-        label = "relocationPresence",
-    )
-    var fullHeightPx by remember(config.packageName) { mutableStateOf(0) }
-    val density = LocalDensity.current
+private fun AppCard(config: AppConfig, onCheckedChange: (checked: Boolean) -> Unit) {
     val drawable by loadAppIcon(LocalContext.current, config.packageName)
     val drawablePainter = rememberDrawablePainter(drawable)
-    // Same per-app rounded card as Home's app list, wrapped in
-    // a height-controlled box for the collapse above.
-    Box(
-        modifier = modifier
-            .padding(horizontal = 16.dp)
-            .then(
-                if (fullHeightPx > 0) {
-                    Modifier.height(
-                        with(density) { (fullHeightPx * presence).toDp() }
-                    )
-                } else {
-                    Modifier
-                }
-            )
-            .clipToBounds(),
-    ) {
+    // Same per-app rounded card as Home's app list.
     Card(
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .onSizeChanged { size ->
-                if (!faded) fullHeightPx = size.height
-            }
-            .graphicsLayer { this.alpha = presence },
+        modifier = Modifier.padding(horizontal = 16.dp),
     ) {
         ListItem(
             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
@@ -304,7 +213,6 @@ private fun AppCard(
                 )
             }
         )
-    }
     }
 }
 
