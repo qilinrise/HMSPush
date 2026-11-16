@@ -38,8 +38,11 @@ import java.lang.reflect.Method
  *
  * - `Notification.Builder.processSmallIconColor`: marks the header
  *   icon as "no original colour" (COLOR_INVALID, so CachingIconView
- *   applies no filter and drops its background) and skips the
- *   framework's own tinting for the package.
+ *   applies no filter) and skips the framework's own tinting for the
+ *   package; afterwards it also strips the template's circle
+ *   background and the padding around the icon (and the `left_icon`
+ *   in expanded templates), which otherwise shrink a full-bleed
+ *   replacement bitmap to the circle's inner area.
  * - `StatusBarIconView.updateIconColor`: skipped for the package, so
  *   the status-bar icon keeps its original colours too.
  *
@@ -106,6 +109,40 @@ class HookSystemUI {
                         XLog.e(TAG, "processSmallIconColor handling failed", t)
                     }
                 }
+                doAfter {
+                    try {
+                        val contentView = args.getOrNull(1) as? RemoteViews
+                        if (contentView != null) {
+                            val packageName = realPackageName(thisObject, contentView)
+                            if (NotificationIconFixer.isColoredDisplay(packageName)) {
+                                // The standard template wraps the small
+                                // icon in a tinted circle background with
+                                // padding, so a full-bleed replacement
+                                // bitmap only occupies the inner area and
+                                // renders visibly smaller than the same
+                                // icon on the push path. NoticeFix's
+                                // coloured display removes both (its own
+                                // comment: drop the padding to cancel the
+                                // surrounding circle), letting the bitmap
+                                // fill the whole icon area.
+                                contentView.setInt(
+                                    android.R.id.icon,
+                                    "setBackgroundResource",
+                                    // android.R.color.transparent
+                                    0,
+                                )
+                                contentView.setViewPadding(android.R.id.icon, 0, 0, 0, 0)
+                                val leftIconId = leftIconId()
+                                if (leftIconId != 0) {
+                                    contentView.setViewPadding(leftIconId, 0, 0, 0, 0)
+                                }
+                                XLog.d(TAG, "colored display: removed icon background and padding for $packageName")
+                            }
+                        }
+                    } catch (t: Throwable) {
+                        XLog.e(TAG, "processSmallIconColor after handling failed", t)
+                    }
+                }
             }
             XLog.d(TAG, "hooked Notification.Builder.processSmallIconColor")
         } catch (t: Throwable) {
@@ -141,6 +178,20 @@ class HookSystemUI {
         } catch (t: Throwable) {
             XLog.e(TAG, "hooking StatusBarIconView failed", t)
         }
+    }
+
+    @Volatile
+    private var cachedLeftIconId: Int? = null
+
+    /** The framework's `left_icon` view id in SystemUI templates, resolved once. */
+    private fun leftIconId(): Int {
+        cachedLeftIconId?.let { return it }
+        val id = runCatching {
+            AndroidAppHelper.currentApplication()?.resources
+                ?.getIdentifier("left_icon", "id", "com.android.systemui") ?: 0
+        }.getOrDefault(0)
+        cachedLeftIconId = id
+        return id
     }
 
     /**
