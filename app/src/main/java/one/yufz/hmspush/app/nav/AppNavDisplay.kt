@@ -7,8 +7,8 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AppRegistration
 import androidx.compose.material.icons.filled.Brush
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -50,7 +50,7 @@ private data class BottomTab(
 )
 
 private val bottomTabs = listOf(
-    BottomTab(Router.Home, Icons.Filled.Home, R.string.nav_register),
+    BottomTab(Router.Home, Icons.Filled.AppRegistration, R.string.nav_register),
     BottomTab(Router.FakeDevice, Icons.Filled.PhoneAndroid, R.string.nav_spoof),
     BottomTab(Router.NoticeCustom, Icons.Filled.Brush, R.string.nav_custom),
     BottomTab(Router.Settings, Icons.Filled.Settings, R.string.menu_settings),

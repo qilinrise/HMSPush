@@ -34,18 +34,17 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -60,8 +59,6 @@ import one.yufz.hmspush.app.workaround.mavericksViewModel
 
 @Composable
 fun FakeDeviceScreen(viewModel: FakeDeviceViewModel = mavericksViewModel()) {
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-
     val state by viewModel.collectAsState()
 
     if (state.error != null) {
@@ -87,8 +84,9 @@ fun FakeDeviceScreen(viewModel: FakeDeviceViewModel = mavericksViewModel()) {
 
     Scaffold(
         topBar = {
+            // No scroll behaviour: like the Custom page, the top bar
+            // keeps its colour while the list scrolls under it.
             TopAppBar(
-                scrollBehavior = scrollBehavior,
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(text = stringResource(id = R.string.fake_device))
@@ -100,7 +98,6 @@ fun FakeDeviceScreen(viewModel: FakeDeviceViewModel = mavericksViewModel()) {
                 },
             )
         },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -120,7 +117,7 @@ fun FakeDeviceScreen(viewModel: FakeDeviceViewModel = mavericksViewModel()) {
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(vertical = 12.dp),
             ) {
-                items(state.filteredConfigList) { config ->
+                items(state.filteredConfigList, key = { it.packageName }) { config ->
                     AppCard(config) {
                         viewModel.update(config.copy(enabled = it))
                     }
@@ -179,19 +176,50 @@ private fun AppCard(config: AppConfig, onCheckedChange: (checked: Boolean) -> Un
                 Text(text = config.packageName)
             },
             trailingContent = {
-                Switch(checked = config.enabled, onCheckedChange = onCheckedChange)
+                // Optimistic switch state: persisting a toggle goes
+                // through a root shell write and a flow round trip,
+                // and a fully controlled Switch visibly bounces back
+                // while that is in flight. The card flips immediately
+                // and the persisted value catches up; the state is
+                // keyed by package so a recycled card never shows
+                // another app's position.
+                var checked by remember(config.packageName) {
+                    mutableStateOf(config.enabled)
+                }
+                Switch(
+                    checked = checked,
+                    onCheckedChange = {
+                        checked = it
+                        onCheckedChange(it)
+                    }
+                )
             }
         )
     }
 }
 
+private val appIconCache = java.util.concurrent.ConcurrentHashMap<String, Drawable>()
+
 @Composable
 private fun loadAppIcon(context: Context, packageName: String): MutableState<Drawable?> {
-    val drawable = remember { mutableStateOf<Drawable?>(null) }
+    // Keyed by package: a recycled card starts from this app's cached
+    // icon (or nothing), never from the previous app's icon, which
+    // used to linger until the async load finished and made icons
+    // and names disagree mid-scroll. The cache keeps icons of
+    // already-seen apps instant on the way back.
+    val drawable = remember(packageName) { mutableStateOf(appIconCache[packageName]) }
 
     LaunchedEffect(packageName) {
-        launch(Dispatchers.IO) {
-            drawable.value = context.packageManager.getApplicationIcon(packageName)
+        if (drawable.value == null) {
+            launch(Dispatchers.IO) {
+                val icon = runCatching {
+                    context.packageManager.getApplicationIcon(packageName)
+                }.getOrNull()
+                if (icon != null) {
+                    appIconCache[packageName] = icon
+                    drawable.value = icon
+                }
+            }
         }
     }
 
