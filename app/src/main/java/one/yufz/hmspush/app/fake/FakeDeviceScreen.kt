@@ -5,6 +5,10 @@ package one.yufz.hmspush.app.fake
 import android.content.Context
 import android.graphics.drawable.Drawable
 import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.selection.toggleable
@@ -13,6 +17,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -32,7 +37,6 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -47,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -189,25 +194,13 @@ private fun AppCard(config: AppConfig, onCheckedChange: (checked: Boolean) -> Un
                 var checked by remember(config.packageName) {
                     mutableStateOf(config.enabled)
                 }
-                // The stock Switch is itself draggable: a scroll
-                // gesture that starts on a switch drags its thumb
-                // sideways before the list's scroll takes over, and
-                // the thumb then animates back — the "jumping
-                // switch" seen while scrolling. Render the Switch
-                // display-only and take the tap on this wrapper
-                // instead: taps toggle, drags just scroll the list.
-                Box(
-                    modifier = Modifier.toggleable(
-                        value = checked,
-                        role = Role.Switch,
-                        onValueChange = {
-                            checked = it
-                            onCheckedChange(it)
-                        },
-                    ),
-                ) {
-                    Switch(checked = checked, onCheckedChange = null)
-                }
+                SpoofSwitch(
+                    checked = checked,
+                    onCheckedChange = {
+                        checked = it
+                        onCheckedChange(it)
+                    },
+                )
             }
         )
     }
@@ -239,4 +232,51 @@ private fun loadAppIcon(context: Context, packageName: String): MutableState<Dra
     }
 
     return drawable
+}
+/**
+ * A switch drawn from scratch for this list. Material3's Switch
+ * keeps its thumb offset in an Animatable owned by a layout node
+ * that is only re-measured when `checked` flips; when LazyColumn
+ * recycles a composition for another app, that node (and its stale
+ * offset) is reused, so the thumb renders displaced — frozen at
+ * the previous app's position with this app's colours — and no
+ * later state change repairs it. This switch derives everything
+ * from the current [checked] value: its animation state lives in
+ * this composable, starts at the current value, and the thumb
+ * position is a pure function of it on every frame.
+ */
+@Composable
+private fun SpoofSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    val fraction by animateFloatAsState(
+        targetValue = if (checked) 1f else 0f,
+        animationSpec = tween(durationMillis = 150),
+        label = "spoofSwitch",
+    )
+    val colors = MaterialTheme.colorScheme
+    val trackColor = lerp(colors.surfaceVariant, colors.primary, fraction)
+    val thumbColor = lerp(colors.outline, colors.onPrimary, fraction)
+    val shape = RoundedCornerShape(percent = 50)
+    Box(
+        modifier = Modifier
+            .size(width = 52.dp, height = 32.dp)
+            .toggleable(
+                value = checked,
+                role = Role.Switch,
+                onValueChange = onCheckedChange,
+            )
+            .background(color = trackColor, shape = shape)
+            .border(
+                width = 2.dp,
+                color = colors.outline.copy(alpha = 1f - fraction),
+                shape = shape,
+            ),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Box(
+            modifier = Modifier
+                .offset(x = (8f + 16f * fraction).dp)
+                .size((16f + 8f * fraction).dp)
+                .background(color = thumbColor, shape = shape),
+        )
+    }
 }
