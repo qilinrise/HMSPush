@@ -8,12 +8,10 @@ package one.yufz.hmspush.app.icon
 
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,12 +24,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -89,20 +84,6 @@ fun IconScreen(iconViewModel: IconViewModel = mavericksViewModel()) {
                 navigationIcon = {
                     IconButton(onClick = { navigator.goBack() }) {
                         Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    var showMoreMenu by remember { mutableStateOf(false) }
-
-                    // Same 4 dp end inset as the home top bar: the
-                    // icon's right edge lands 16 dp from the right
-                    // edge, mirroring the title's left inset.
-                    Box(modifier = Modifier.padding(end = 4.dp)) {
-                        IconButton(onClick = { showMoreMenu = true }) {
-                            Icon(imageVector = Icons.Filled.Add, contentDescription = "Add")
-                        }
-
-                        MoreMenu(showMoreMenu, onDismissRequest = { showMoreMenu = false })
                     }
                 },
             )
@@ -216,45 +197,6 @@ fun IconScreen(iconViewModel: IconViewModel = mavericksViewModel()) {
                 text = stringResource(R.string.importing)
             )
         }
-    }
-}
-
-@Composable
-fun MoreMenu(showMoreMenu: Boolean, onDismissRequest: () -> Unit) {
-    var showImportDialog by remember { mutableStateOf(false) }
-    val iconViewModel: IconViewModel = mavericksViewModel()
-    val state by iconViewModel.collectAsState()
-    DropdownMenu(expanded = showMoreMenu, onDismissRequest = onDismissRequest, modifier = Modifier.defaultMinSize(minWidth = 160.dp), shape = RoundedCornerShape(20.dp)) {
-        DropdownMenuItem(
-            text = {
-                Text(text = stringResource(id = R.string.import_from_url))
-            },
-            onClick = {
-                showImportDialog = true
-                onDismissRequest()
-            }
-        )
-        DropdownMenuItem(
-            text = {
-                Text(text = stringResource(id = R.string.clear_icons))
-            },
-            onClick = {
-                iconViewModel.clearIcons()
-                onDismissRequest()
-            }
-        )
-    }
-
-    if (showImportDialog) {
-        ImportFromUrlDialog(
-            initUrl = state.customIconUrl,
-            onConfirm = {
-                iconViewModel.fetchIconFromUrl(it)
-            },
-            onDismissRequest = {
-                showImportDialog = false
-            }
-        )
     }
 }
 

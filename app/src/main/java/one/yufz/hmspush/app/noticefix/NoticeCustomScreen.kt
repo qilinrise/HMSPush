@@ -19,15 +19,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -52,9 +57,17 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.airbnb.mvrx.compose.collectAsState
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import one.yufz.hmspush.R
+import one.yufz.hmspush.app.icon.IconViewModel
+import one.yufz.hmspush.app.icon.ImportFromUrlDialog
+import one.yufz.hmspush.app.icon.InfoDialog
+import one.yufz.hmspush.app.nav.LocalNavigator
+import one.yufz.hmspush.app.nav.Router
+import one.yufz.hmspush.app.widget.LoadingDialog
 import one.yufz.hmspush.app.widget.PillSearchField
+import one.yufz.hmspush.app.workaround.mavericksViewModel
 import one.yufz.hmspush.common.IconData
 import one.yufz.hmspush.common.noticefix.NoticeCustomIcon
 
@@ -70,8 +83,12 @@ private class EditingState(val app: InstalledApp, val source: Bitmap)
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NoticeCustomScreen(viewModel: NoticeFixViewModel = rememberNoticeFixViewModel()) {
+fun NoticeCustomScreen(
+    viewModel: NoticeFixViewModel = rememberNoticeFixViewModel(),
+    iconViewModel: IconViewModel = mavericksViewModel(),
+) {
     val context = LocalContext.current
+    val iconState by iconViewModel.collectAsState()
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf(CustomFilter.ALL) }
 
@@ -115,7 +132,16 @@ fun NoticeCustomScreen(viewModel: NoticeFixViewModel = rememberNoticeFixViewMode
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(text = stringResource(id = R.string.nav_custom)) })
+            TopAppBar(
+                title = { Text(text = stringResource(id = R.string.nav_custom)) },
+                actions = {
+                    // Mirror the home top bar's inset so the icon's
+                    // right edge lands 16 dp from the right edge.
+                    Box(modifier = Modifier.padding(end = 4.dp)) {
+                        CustomTopMenu(iconViewModel)
+                    }
+                },
+            )
         },
     ) { padding ->
         Column(
@@ -204,6 +230,20 @@ fun NoticeCustomScreen(viewModel: NoticeFixViewModel = rememberNoticeFixViewMode
                 }
             }
         }
+    }
+
+    // Import feedback for the top menu's URL import, same dialogs
+    // the icon library page used to show.
+    val importState = iconState.importState
+    if (importState.info != null) {
+        InfoDialog(importState.info!!) {
+            iconViewModel.cancelImport()
+        }
+    } else if (importState.loading) {
+        LoadingDialog(
+            onDismissRequest = { iconViewModel.cancelImport() },
+            text = stringResource(R.string.importing),
+        )
     }
 
     editing?.let { state ->
@@ -435,5 +475,62 @@ private fun EditSwitchRow(label: String, checked: Boolean, onCheckedChange: (Boo
     ) {
         Text(text = label, style = MaterialTheme.typography.bodyMedium)
         CheckSwitch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+/**
+ * Top-right menu of the Custom page: the icon library entry (the
+ * library page itself is unchanged and still reachable), plus the
+ * import / clear actions that used to live in the library page's
+ * own menu.
+ */
+@Composable
+private fun CustomTopMenu(iconViewModel: IconViewModel) {
+    val navigator = LocalNavigator.current
+    val iconState by iconViewModel.collectAsState()
+    var openMenu by remember { mutableStateOf(false) }
+    var showImportDialog by remember { mutableStateOf(false) }
+
+    IconButton(onClick = { openMenu = true }) {
+        Icon(imageVector = Icons.Filled.MoreVert, contentDescription = "More")
+    }
+    DropdownMenu(
+        expanded = openMenu,
+        onDismissRequest = { openMenu = false },
+        modifier = Modifier.requiredWidth(160.dp),
+        shape = RoundedCornerShape(20.dp),
+    ) {
+        DropdownMenuItem(
+            text = { Text(text = stringResource(id = R.string.nav_library)) },
+            trailingIcon = {
+                Icon(imageVector = Icons.Filled.ChevronRight, contentDescription = null)
+            },
+            onClick = {
+                openMenu = false
+                navigator.navigate(Router.Icon)
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(text = stringResource(id = R.string.import_from_url)) },
+            onClick = {
+                openMenu = false
+                showImportDialog = true
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(text = stringResource(id = R.string.clear_icons)) },
+            onClick = {
+                openMenu = false
+                iconViewModel.clearIcons()
+            },
+        )
+    }
+
+    if (showImportDialog) {
+        ImportFromUrlDialog(
+            initUrl = iconState.customIconUrl,
+            onConfirm = { iconViewModel.fetchIconFromUrl(it) },
+            onDismissRequest = { showImportDialog = false },
+        )
     }
 }
