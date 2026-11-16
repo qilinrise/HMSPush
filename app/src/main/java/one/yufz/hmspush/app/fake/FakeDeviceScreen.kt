@@ -136,7 +136,10 @@ fun FakeDeviceScreen(viewModel: FakeDeviceViewModel = mavericksViewModel()) {
                     key = { it.packageName },
                     contentType = { "appCard" },
                 ) { config ->
-                    AppCard(config) {
+                    // animateItem glides the row to its new group
+                    // when a toggle re-sorts the list (enabled rows
+                    // float up, disabled rows sink to the bottom).
+                    AppCard(config, modifier = Modifier.animateItem()) {
                         viewModel.update(config.copy(enabled = it))
                     }
                 }
@@ -164,7 +167,11 @@ private fun Tips(zygiskEnabled: Boolean, requestShowTips: () -> Unit) {
 }
 
 @Composable
-private fun AppCard(config: AppConfig, onCheckedChange: (checked: Boolean) -> Unit) {
+private fun AppCard(
+    config: AppConfig,
+    modifier: Modifier = Modifier,
+    onCheckedChange: (checked: Boolean) -> Unit,
+) {
     val drawable by loadAppIcon(LocalContext.current, config.packageName)
     val drawablePainter = rememberDrawablePainter(drawable)
     // Same per-app rounded card as Home's app list.
@@ -173,7 +180,7 @@ private fun AppCard(config: AppConfig, onCheckedChange: (checked: Boolean) -> Un
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ),
-        modifier = Modifier.padding(horizontal = 16.dp),
+        modifier = modifier.padding(horizontal = 16.dp),
     ) {
         ListItem(
             colors = ListItemDefaults.colors(containerColor = Color.Transparent),

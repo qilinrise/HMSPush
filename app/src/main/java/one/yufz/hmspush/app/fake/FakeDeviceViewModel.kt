@@ -50,12 +50,16 @@ class FakeDeviceViewModel(initialState: FakeDeviceState) : MavericksViewModel<Fa
             .flowOn(Dispatchers.IO)
             .onEach { list ->
                 setState {
-                    val appConfigs = if (configList.isNotEmpty()) {
-                        mergeConfigList(configList, list)
-                    } else {
-                        list.sortedByDescending { it.enabled }
-                    }
-                    copy(configList = appConfigs)
+                    // Enabled apps first, disabled ones sink to the
+                    // bottom — on every update, not just the first
+                    // load, so toggling a switch moves its row into
+                    // the other group right away instead of only
+                    // after a restart. The sort is stable: within a
+                    // group, rows keep their previous relative order.
+                    copy(
+                        configList = mergeConfigList(configList, list)
+                            .sortedByDescending { it.enabled }
+                    )
                 }
             }
             .launchIn(viewModelScope)
