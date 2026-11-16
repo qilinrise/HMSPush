@@ -103,7 +103,9 @@ fun IconScreen(iconViewModel: IconViewModel = mavericksViewModel()) {
             )
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(bottom = paddingValues.calculateBottomPadding())
+                // Bottom spacing matches the Register page's list:
+                // the system bottom inset plus 12 dp.
+                contentPadding = PaddingValues(bottom = paddingValues.calculateBottomPadding() + 12.dp)
             ) {
                 items(state.filteredIcons) {
                     Row(
