@@ -7,8 +7,6 @@ import android.graphics.drawable.Drawable
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.selection.toggleable
@@ -17,7 +15,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -37,6 +34,7 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -50,7 +48,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.LocalContext
@@ -125,7 +128,11 @@ fun FakeDeviceScreen(viewModel: FakeDeviceViewModel = mavericksViewModel()) {
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(vertical = 12.dp),
             ) {
-                items(state.filteredConfigList, key = { it.packageName }) { config ->
+                items(
+                    state.filteredConfigList,
+                    key = { it.packageName },
+                    contentType = { "appCard" },
+                ) { config ->
                     AppCard(config) {
                         viewModel.update(config.copy(enabled = it))
                     }
@@ -241,9 +248,11 @@ private fun loadAppIcon(context: Context, packageName: String): MutableState<Dra
  * offset) is reused, so the thumb renders displaced — frozen at
  * the previous app's position with this app's colours — and no
  * later state change repairs it. This switch derives everything
- * from the current [checked] value: its animation state lives in
- * this composable, starts at the current value, and the thumb
- * position is a pure function of it on every frame.
+ * from the current [checked] value instead: colours come from
+ * [SwitchDefaults] so it matches the stock switches used on the
+ * Settings page exactly, and all drawing happens in the draw
+ * phase, so toggling never recomposes or re-measures the row and
+ * scrolling rows stay cheap.
  */
 @Composable
 private fun SpoofSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
@@ -252,10 +261,7 @@ private fun SpoofSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
         animationSpec = tween(durationMillis = 150),
         label = "spoofSwitch",
     )
-    val colors = MaterialTheme.colorScheme
-    val trackColor = lerp(colors.surfaceVariant, colors.primary, fraction)
-    val thumbColor = lerp(colors.outline, colors.onPrimary, fraction)
-    val shape = RoundedCornerShape(percent = 50)
+    val switchColors = SwitchDefaults.colors()
     Box(
         modifier = Modifier
             .size(width = 52.dp, height = 32.dp)
@@ -264,19 +270,41 @@ private fun SpoofSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
                 role = Role.Switch,
                 onValueChange = onCheckedChange,
             )
-            .background(color = trackColor, shape = shape)
-            .border(
-                width = 2.dp,
-                color = colors.outline.copy(alpha = 1f - fraction),
-                shape = shape,
-            ),
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        Box(
-            modifier = Modifier
-                .offset(x = (8f + 16f * fraction).dp)
-                .size((16f + 8f * fraction).dp)
-                .background(color = thumbColor, shape = shape),
-        )
-    }
+            .drawBehind {
+                val f = fraction
+                val corner = CornerRadius(size.height / 2f)
+                drawRoundRect(
+                    color = lerp(
+                        switchColors.uncheckedTrackColor,
+                        switchColors.checkedTrackColor,
+                        f,
+                    ),
+                    cornerRadius = corner,
+                )
+                val borderColor = lerp(
+                    switchColors.uncheckedBorderColor,
+                    switchColors.checkedBorderColor,
+                    f,
+                )
+                if (borderColor.alpha > 0f) {
+                    val inset = 1.dp.toPx()
+                    drawRoundRect(
+                        color = borderColor,
+                        topLeft = Offset(inset, inset),
+                        size = Size(size.width - 2 * inset, size.height - 2 * inset),
+                        cornerRadius = CornerRadius(corner.x - inset),
+                        style = Stroke(width = 2.dp.toPx()),
+                    )
+                }
+                drawCircle(
+                    color = lerp(
+                        switchColors.uncheckedThumbColor,
+                        switchColors.checkedThumbColor,
+                        f,
+                    ),
+                    radius = (8f + 4f * f).dp.toPx(),
+                    center = Offset((16f + 20f * f).dp.toPx(), size.height / 2f),
+                )
+            },
+    )
 }
