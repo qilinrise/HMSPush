@@ -44,6 +44,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -53,6 +54,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -65,6 +67,8 @@ import androidx.compose.ui.unit.dp
 import com.airbnb.mvrx.compose.collectAsState
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import one.yufz.hmspush.R
 import one.yufz.hmspush.app.widget.PillSearchField
@@ -74,6 +78,36 @@ import one.yufz.hmspush.app.workaround.mavericksViewModel
 @Composable
 fun FakeDeviceScreen(viewModel: FakeDeviceViewModel = mavericksViewModel()) {
     val state by viewModel.collectAsState()
+
+    // Relocation choreography: a toggled row does not fly to its
+    // new group — with animateItem's placement animation it slid
+    // the whole way, showing through the gaps between the other
+    // cards. Instead the row fades out where it is, the list
+    // re-sorts underneath (neighbours glide to close/open the
+    // gap), and the row fades back in at its destination.
+    val relocationScope = rememberCoroutineScope()
+    var relocatingPackages by remember { mutableStateOf<Set<String>>(emptySet()) }
+    val relocationJobs = remember { mutableMapOf<String, Job>() }
+
+    fun onToggle(config: AppConfig, enabled: Boolean) {
+        val pkg = config.packageName
+        val pending = relocationJobs.remove(pkg)
+        if (pending != null) {
+            // Toggled back before the move fired: cancel it and
+            // fade the row back in where it is; nothing was
+            // written, and the switch has flipped back too.
+            pending.cancel()
+            relocatingPackages = relocatingPackages - pkg
+            return
+        }
+        relocatingPackages = relocatingPackages + pkg
+        relocationJobs[pkg] = relocationScope.launch {
+            delay(RELOCATION_FADE_MS)
+            viewModel.update(config.copy(enabled = enabled))
+            relocatingPackages = relocatingPackages - pkg
+            relocationJobs.remove(pkg)
+        }
+    }
 
     if (state.error != null) {
         AlertDialog(
@@ -136,11 +170,18 @@ fun FakeDeviceScreen(viewModel: FakeDeviceViewModel = mavericksViewModel()) {
                     key = { it.packageName },
                     contentType = { "appCard" },
                 ) { config ->
-                    // animateItem glides the row to its new group
-                    // when a toggle re-sorts the list (enabled rows
-                    // float up, disabled rows sink to the bottom).
-                    AppCard(config, modifier = Modifier.animateItem()) {
-                        viewModel.update(config.copy(enabled = it))
+                    val relocating = config.packageName in relocatingPackages
+                    AppCard(
+                        config,
+                        // While relocating, the row loses its
+                        // placement animation so the re-sort puts
+                        // it at its destination instantly (invisible
+                        // mid-fade); neighbours keep theirs and
+                        // glide to close/open the gap.
+                        modifier = if (relocating) Modifier else Modifier.animateItem(),
+                        faded = relocating,
+                    ) { enabled ->
+                        onToggle(config, enabled)
                     }
                 }
             }
@@ -166,12 +207,23 @@ private fun Tips(zygiskEnabled: Boolean, requestShowTips: () -> Unit) {
     }
 }
 
+private const val RELOCATION_FADE_MS = 160L
+
 @Composable
 private fun AppCard(
     config: AppConfig,
     modifier: Modifier = Modifier,
+    faded: Boolean = false,
     onCheckedChange: (checked: Boolean) -> Unit,
 ) {
+    // Fade for the relocation choreography: out before the
+    // re-sort moves the row, back in once it sits at its
+    // destination.
+    val alpha by animateFloatAsState(
+        targetValue = if (faded) 0f else 1f,
+        animationSpec = tween(durationMillis = RELOCATION_FADE_MS.toInt()),
+        label = "relocationFade",
+    )
     val drawable by loadAppIcon(LocalContext.current, config.packageName)
     val drawablePainter = rememberDrawablePainter(drawable)
     // Same per-app rounded card as Home's app list.
@@ -180,7 +232,9 @@ private fun AppCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ),
-        modifier = modifier.padding(horizontal = 16.dp),
+        modifier = modifier
+            .padding(horizontal = 16.dp)
+            .graphicsLayer { this.alpha = alpha },
     ) {
         ListItem(
             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
