@@ -129,12 +129,12 @@ private fun AppCard(info: AppInfo, zygiskEnabled: Boolean) {
         },
         supportingContent = {
             Column {
-                //Subtitle
+                //Subtitle — no line limit: long package names wrap
+                // onto the next line instead of being ellipsized,
+                // matching the Spoof and Custom pages.
                 Text(
                     text = info.packageName,
                     color = MaterialTheme.colorScheme.onBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
                 )
 
                 //Status
