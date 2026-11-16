@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -65,6 +66,7 @@ import androidx.compose.ui.unit.sp
 import com.airbnb.mvrx.compose.collectAsState
 import de.charlex.compose.HtmlText
 import one.yufz.hmspush.R
+import one.yufz.hmspush.app.nav.LocalNavigator
 import one.yufz.hmspush.app.widget.LoadingDialog
 import one.yufz.hmspush.app.widget.PillSearchField
 import one.yufz.hmspush.app.workaround.mavericksViewModel
@@ -76,11 +78,18 @@ fun IconScreen(iconViewModel: IconViewModel = mavericksViewModel()) {
     var query by remember { mutableStateOf("") }
     val state by iconViewModel.collectAsState()
 
+    val navigator = LocalNavigator.current
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(text = stringResource(id = R.string.notification_icons_title))
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navigator.goBack() }) {
+                        Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = "Back")
+                    }
                 },
                 actions = {
                     var showMoreMenu by remember { mutableStateOf(false) }

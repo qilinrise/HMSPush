@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -50,8 +50,8 @@ private data class BottomTab(
 )
 
 private val bottomTabs = listOf(
-    BottomTab(Router.Home, Icons.Filled.Home, R.string.nav_home),
-    BottomTab(Router.Icon, Icons.Filled.PhotoLibrary, R.string.nav_library),
+    BottomTab(Router.Home, Icons.Filled.Home, R.string.nav_register),
+    BottomTab(Router.FakeDevice, Icons.Filled.PhoneAndroid, R.string.nav_spoof),
     BottomTab(Router.NoticeCustom, Icons.Filled.Brush, R.string.nav_custom),
     BottomTab(Router.Settings, Icons.Filled.Settings, R.string.menu_settings),
 )
@@ -65,7 +65,7 @@ fun AppNavDisplay(
         startRoute = startDestination,
         topLevelRoutes = setOf(
             Router.Home,
-            Router.Icon,
+            Router.FakeDevice,
             Router.NoticeCustom,
             Router.Settings,
         ),

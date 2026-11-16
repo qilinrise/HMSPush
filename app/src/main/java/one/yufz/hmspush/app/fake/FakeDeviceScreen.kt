@@ -20,13 +20,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -54,14 +54,12 @@ import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import one.yufz.hmspush.R
-import one.yufz.hmspush.app.nav.LocalNavigator
 import one.yufz.hmspush.app.widget.PillSearchField
 import one.yufz.hmspush.app.widget.TipsDialog
 import one.yufz.hmspush.app.workaround.mavericksViewModel
 
 @Composable
 fun FakeDeviceScreen(viewModel: FakeDeviceViewModel = mavericksViewModel()) {
-    val navigator = LocalNavigator.current
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
     val state by viewModel.collectAsState()
@@ -91,11 +89,6 @@ fun FakeDeviceScreen(viewModel: FakeDeviceViewModel = mavericksViewModel()) {
         topBar = {
             TopAppBar(
                 scrollBehavior = scrollBehavior,
-                navigationIcon = {
-                    IconButton(onClick = { navigator.goBack() }) {
-                        Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(text = stringResource(id = R.string.fake_device))
@@ -125,7 +118,7 @@ fun FakeDeviceScreen(viewModel: FakeDeviceViewModel = mavericksViewModel()) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(vertical = 8.dp),
+                contentPadding = PaddingValues(vertical = 12.dp),
             ) {
                 items(state.filteredConfigList) { config ->
                     AppCard(config) {
@@ -159,27 +152,37 @@ private fun Tips(zygiskEnabled: Boolean, requestShowTips: () -> Unit) {
 private fun AppCard(config: AppConfig, onCheckedChange: (checked: Boolean) -> Unit) {
     val drawable by loadAppIcon(LocalContext.current, config.packageName)
     val drawablePainter = rememberDrawablePainter(drawable)
-    ListItem(
-        leadingContent = {
-            Icon(
-                painter = drawablePainter,
-                contentDescription = "icon",
-                tint = Color.Unspecified,
-                modifier = Modifier
-                    .size(56.dp)
-                    .padding(all = 8.dp)
-            )
-        },
-        headlineContent = {
-            Text(text = config.name)
-        },
-        supportingContent = {
-            Text(text = config.packageName)
-        },
-        trailingContent = {
-            Switch(checked = config.enabled, onCheckedChange = onCheckedChange)
-        }
-    )
+    // Same per-app rounded card as Home's app list.
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+        modifier = Modifier.padding(horizontal = 16.dp),
+    ) {
+        ListItem(
+            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+            leadingContent = {
+                Icon(
+                    painter = drawablePainter,
+                    contentDescription = "icon",
+                    tint = Color.Unspecified,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .padding(all = 8.dp)
+                )
+            },
+            headlineContent = {
+                Text(text = config.name)
+            },
+            supportingContent = {
+                Text(text = config.packageName)
+            },
+            trailingContent = {
+                Switch(checked = config.enabled, onCheckedChange = onCheckedChange)
+            }
+        )
+    }
 }
 
 @Composable

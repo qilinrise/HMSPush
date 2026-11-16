@@ -55,12 +55,10 @@ import androidx.compose.ui.unit.dp
 import com.airbnb.mvrx.compose.collectAsState
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import one.yufz.hmspush.BuildConfig
 import one.yufz.hmspush.R
 import one.yufz.hmspush.app.HmsPushClient
-import one.yufz.hmspush.app.fake.FakeDeviceConfig
 import one.yufz.hmspush.app.theme.AppTheme
 import one.yufz.hmspush.app.theme.customColors
 import one.yufz.hmspush.app.workaround.mavericksViewModel
@@ -148,7 +146,7 @@ private fun AppCard(info: AppInfo, zygiskEnabled: Boolean) {
             var showDropdownMenu by remember { mutableStateOf(false) }
             IconButton(onClick = { showDropdownMenu = true }) {
                 Icon(imageVector = Icons.Filled.MoreVert, contentDescription = "More")
-                MoreDropdownMenu(showDropdownMenu, info, zygiskEnabled, { showDropdownMenu = false })
+                MoreDropdownMenu(showDropdownMenu, info, { showDropdownMenu = false })
             }
         }
     )
@@ -210,7 +208,7 @@ private fun AppStatus(info: AppInfo, zygiskEnabled: Boolean) {
 }
 
 @Composable
-private fun MoreDropdownMenu(expanded: Boolean, info: AppInfo, zygiskEnabled: Boolean, onDismissRequest: () -> Unit) {
+private fun MoreDropdownMenu(expanded: Boolean, info: AppInfo, onDismissRequest: () -> Unit) {
     val context = LocalContext.current
 
     var showUnregisterDialog by remember { mutableStateOf(false) }
@@ -262,33 +260,6 @@ private fun MoreDropdownMenu(expanded: Boolean, info: AppInfo, zygiskEnabled: Bo
             }
         )
 
-        if (zygiskEnabled) {
-            if (info.useZygiskFake) {
-                DropdownMenuItem(
-                    text = {
-                        Text(text = stringResource(R.string.menu_disable_zygisk_fake))
-                    },
-                    onClick = {
-                        onDismissRequest()
-                        GlobalScope.launch {
-                            FakeDeviceConfig.deleteConfig(info.packageName)
-                        }
-                    }
-                )
-            } else {
-                DropdownMenuItem(
-                    text = {
-                        Text(text = stringResource(R.string.menu_enable_zygisk_fake))
-                    },
-                    onClick = {
-                        onDismissRequest()
-                        GlobalScope.launch {
-                            FakeDeviceConfig.update(info.packageName, emptyList())
-                        }
-                    }
-                )
-            }
-        }
         //Unregister
         if (info.registered) {
             DropdownMenuItem(

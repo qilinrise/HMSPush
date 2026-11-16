@@ -82,6 +82,8 @@
     <string name="nav_home">Home</string>
     <string name="nav_library">Library</string>
     <string name="nav_custom">Custom</string>
+    <string name="nav_register">Register</string>
+    <string name="nav_spoof">Spoof</string>
     <string name="notice_func_custom">Custom icon</string>
     <string name="notice_func_custom_summary">Use the custom icon set for the app</string>
     <string name="notice_func_lib">Icon library</string>

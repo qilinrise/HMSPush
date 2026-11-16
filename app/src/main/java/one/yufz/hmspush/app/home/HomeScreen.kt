@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -167,10 +168,16 @@ private fun AppBarMoreMenu() {
                 val navigator = LocalNavigator.current
                 DropdownMenuItem(
                     text = {
-                        Text(text = stringResource(id = R.string.fake_device))
+                        Text(text = stringResource(id = R.string.nav_library))
+                    },
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.ChevronRight,
+                            contentDescription = null,
+                        )
                     },
                     onClick = {
-                        navigator.navigate(Router.FakeDevice)
+                        navigator.navigate(Router.Icon)
                         openMoreMenu = false
                     }
                 )

@@ -81,6 +81,8 @@
     <string name="nav_home">首页</string>
     <string name="nav_library">图标库</string>
     <string name="nav_custom">自定义</string>
+    <string name="nav_register">注册</string>
+    <string name="nav_spoof">伪装</string>
     <string name="notice_func_custom">自定义图标</string>
     <string name="notice_func_custom_summary">使用为该应用设置的自定义图标</string>
     <string name="notice_func_lib">图标库</string>
