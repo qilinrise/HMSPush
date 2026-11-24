@@ -82,7 +82,7 @@ internal object NoticeFixData {
             cachedAt = now
             XLog.d(
                 TAG,
-                "loaded snapshot: config=${snapshot.config} funcs=${snapshot.funcs} " +
+                "loaded snapshot: master=${snapshot.masterEnabled} config=${snapshot.config} funcs=${snapshot.funcs} " +
                     "customs=${snapshot.customs.keys}",
             )
         }

@@ -5,7 +5,7 @@ import android.content.ContentValues
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
-import one.yufz.hmspush.common.HMSPUSH_PREF_NAME
+import one.yufz.hmspush.app.HmsPushClient
 import one.yufz.hmspush.common.noticefix.NoticeCustomIcon
 import one.yufz.hmspush.common.noticefix.NoticeFixContract
 import one.yufz.hmspush.common.noticefix.NoticeFuncStatus
@@ -37,10 +37,18 @@ class NoticeFixProvider : ContentProvider() {
         val context = context ?: return cursor
         // The Custom Notification Icon switch is the master switch of
         // BOTH icon pipelines: the HMS-side handler already honours it,
-        // and the SystemUI pipeline reads it from this column.
-        val masterEnabled = context
-            .getSharedPreferences(HMSPUSH_PREF_NAME, android.content.Context.MODE_PRIVATE)
-            .getBoolean("useCustomIcon", false)
+        // and the SystemUI pipeline reads it from this column. The
+        // switch's canonical value lives in HMS Core's device-protected
+        // preferences (that is where the hooked Prefs object stores
+        // it), which this process cannot read as a file — the only way
+        // to it is the HMS push service bridge, the same channel the
+        // Settings page itself uses, so this column always matches
+        // what the switch shows. When the service is unreachable the
+        // column reports ON: a bridge hiccup must not disable the
+        // SystemUI pipeline, and the real value applies as soon as
+        // the service answers again.
+        val masterEnabled = !HmsPushClient.isHmsPushServiceAlive() ||
+            HmsPushClient.preference.useCustomIcon
         cursor.addRow(
             arrayOf(
                 NoticeFixStore.loadConfig(context).toJson().toString(),
