@@ -14,11 +14,57 @@ import org.json.JSONObject
  * holding JSON values. The SystemUI side reads the same data through
  * [NoticeFixProvider]; nothing of this touches the HMS push icon feature,
  * which keeps its own storage and service.
+ *
+ * The files live in DEVICE-PROTECTED storage on purpose (the same
+ * choice the HMS-side Prefs storage makes). The provider is queried by
+ * SystemUI whenever a notification arrives — including right after a
+ * reboot or while the device is locked, when credential-protected
+ * storage is still unavailable. A SharedPreferences file first touched
+ * in that state loads as empty and is never re-read for the lifetime of
+ * the process, so with credential storage the provider kept serving an
+ * empty custom-icon map until the app process happened to restart
+ * unlocked (seen in the 2026-11-25 LSPosed log: customs present only
+ * between two process lifetimes, absent before and after). Device-
+ * protected storage is readable in both states, so the data is the
+ * same whenever the process starts. Existing credential-storage data
+ * is copied over lazily by [migrateIfNeeded].
  */
 object NoticeFixStore {
 
-    private fun prefs(context: Context, file: String): SharedPreferences =
-        context.getSharedPreferences(file, Context.MODE_PRIVATE)
+    private fun prefs(context: Context, file: String): SharedPreferences {
+        val deContext = context.createDeviceProtectedStorageContext()
+        migrateIfNeeded(context, deContext, file)
+        return deContext.getSharedPreferences(file, Context.MODE_PRIVATE)
+    }
+
+    /**
+     * One-time copy of a data set from credential-protected storage
+     * (where it lived before the move) to device-protected storage.
+     * Runs until the device-protected file holds data; while the
+     * credential storage is still locked it simply finds nothing and
+     * a later call retries.
+     */
+    private fun migrateIfNeeded(context: Context, deContext: Context, file: String) {
+        runCatching {
+            val de = deContext.getSharedPreferences(file, Context.MODE_PRIVATE)
+            if (de.all.isNotEmpty()) return
+            val ce = context.getSharedPreferences(file, Context.MODE_PRIVATE)
+            val all = ce.all
+            if (all.isEmpty()) return
+            val editor = de.edit()
+            for ((key, value) in all) {
+                when (value) {
+                    is String -> editor.putString(key, value)
+                    is Boolean -> editor.putBoolean(key, value)
+                    is Int -> editor.putInt(key, value)
+                    is Long -> editor.putLong(key, value)
+                    is Float -> editor.putFloat(key, value)
+                    is Set<*> -> editor.putStringSet(key, value.filterIsInstance<String>().toSet())
+                }
+            }
+            editor.apply()
+        }
+    }
 
     // ----- global config -------------------------------------------------
 
