@@ -47,8 +47,15 @@ class NoticeFixProvider : ContentProvider() {
         // column reports ON: a bridge hiccup must not disable the
         // SystemUI pipeline, and the real value applies as soon as
         // the service answers again.
-        val masterEnabled = !HmsPushClient.isHmsPushServiceAlive() ||
-            HmsPushClient.preference.useCustomIcon
+        // Isolated on purpose: this one flag must never fail the whole
+        // query — a throw here would starve the SystemUI pipeline of
+        // ALL its data (this is exactly what killed the pipeline after
+        // a reboot, when an early query hit the not-yet-initialized
+        // HmsPushClient). Any failure reads as ON.
+        val masterEnabled = runCatching {
+            !HmsPushClient.isHmsPushServiceAlive() ||
+                HmsPushClient.preference.useCustomIcon
+        }.getOrDefault(true)
         cursor.addRow(
             arrayOf(
                 NoticeFixStore.loadConfig(context).toJson().toString(),

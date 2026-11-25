@@ -16,14 +16,14 @@ import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
 
-fun createHmsPushServiceProxy(context: Context): HmsPushInterface = Proxy.newProxyInstance(HmsPushInterface::class.java.classLoader, arrayOf(HmsPushInterface::class.java), object : InvocationHandler {
+fun createHmsPushServiceProxy(contextProvider: () -> Context): HmsPushInterface = Proxy.newProxyInstance(HmsPushInterface::class.java.classLoader, arrayOf(HmsPushInterface::class.java), object : InvocationHandler {
     private lateinit var service: HmsPushInterface
 
     private fun getService(): HmsPushInterface {
         if (this::service.isInitialized && service.asBinder().isBinderAlive) {
             return service
         }
-        BridgeWrap.query(context, BridgeUri.HMS_PUSH_SERVICE.toUri())?.use {
+        BridgeWrap.query(contextProvider(), BridgeUri.HMS_PUSH_SERVICE.toUri())?.use {
             service = HmsPushInterface.Stub.asInterface(BinderCursor.getBinder(it))
             return service
         }
@@ -52,7 +52,15 @@ fun createHmsPushServiceProxy(context: Context): HmsPushInterface = Proxy.newPro
 }) as HmsPushInterface
 
 object HmsPushClient : HmsPushInterface.Stub() {
-    private val service = createHmsPushServiceProxy(App.instance)
+    // The context is resolved lazily on every call, NOT captured at
+    // object initialization: this singleton can be triggered by a
+    // ContentProvider query that arrives before Application.onCreate
+    // has set App.instance (providers are published first), and
+    // touching the lateinit there would fail the class initialization
+    // and poison the singleton for the whole process lifetime. With
+    // the lazy lookup an early call just degrades to the Default
+    // service through the handler's fallback below.
+    private val service = createHmsPushServiceProxy { App.instance }
 
     fun getHmsPushServiceFlow(): Flow<Unit> =
         BridgeWrap.registerContentAsFlow(App.instance, BridgeUri.HMS_PUSH_SERVICE.toUri()) {}
